@@ -1,0 +1,946 @@
+---
+header-includes:
+- \usepackage[utf8]{inputenc}
+- \setlength{\parindent}{0cm}
+- \usepackage{amsmath}
+- \usepackage{array}
+- \usepackage{float}
+- \usepackage{multirow}
+- \usepackage[spanish, es-tabla]{babel}\decimalpoint
+output:
+  pdf_document:
+    number_sections: yes
+fontsize: 10pt
+papersize: letter
+geometry: margin = 1in
+language: es
+editor_options:
+  markdown:
+    wrap: 72
+---
+
+```{r setup, include=F}
+knitr::opts_chunk$set(echo = F, fig.align = "center", fig.pos = "H", warning = F, message = F)
+library("dplyr")
+library("stargazer")
+library("tidyverse")
+library("MASS")
+library("ggplot2")
+library(leaps)
+library(kableExtra)
+library("readxl")
+library("readr")
+source("Functions.R")
+library("stargazer")
+```
+
+```{=tex}
+\input{titlepage}
+\thispagestyle{empty}
+\tableofcontents
+\newpage
+\thispagestyle{empty}
+\listoffigures
+\listoftables
+\newpage
+```
+```{=tex}
+\pagestyle{myheadings}
+\setcounter{page}{3}
+```
+\section{Punto 1 - Agua y sal}
+
+\subsection{Introducción}
+La congelación y descongelación del agua son procesos importantes que ocurren en muchos contextos naturales. En particular, la congelación y descongelación del agua pueden tener efectos significativos en la calidad y seguridad de los alimentos.
+
+Uno de los factores que puede afectar la congelación y descongelación del agua es la concentración de sal en el líquido. La sal, como soluto, puede afectar la forma en que se forman los cristales de hielo durante la congelación y la forma en que se derrite el hielo durante el proceso de descongelación.  En este trabajo, se investigará cómo la concentración de sal influye en la congelación y descongelación del agua.
+\subsection{Objetivo}
+Explorar cómo la concentración de sal en el agua congelada afecta la velocidad de descongelación del hielo. Para lograr este objetivo, se medirá la velocidad de descongelación del hielo en soluciones de agua con diferentes concentraciones de sal y se compararán los resultados.
+\subsection{Marco Teórico}
+La congelación y descongelación del agua son procesos bien conocidos en la ciencia de los materiales y en la química de soluciones. Durante la congelación, el agua se convierte en hielo a medida que disminuye su temperatura y se forma una red cristalina ordenada. Por otro lado, durante la descongelación, el hielo se derrite y el agua vuelve a su estado líquido original. La formación de cristales de hielo durante la congelación del agua es un proceso complejo que puede ser influenciado por varios factores, como la velocidad de enfriamiento, la presión, la composición química y la concentración de solutos. Los solutos, como la sal, pueden afectar la formación de cristales de hielo al cambiar la estructura molecular del agua y disminuir su punto de congelación. La sal también puede influir en el tamaño y la forma de los cristales de hielo que se forman. Además, durante la descongelación del agua, el proceso inverso ocurre a medida que el hielo se derrite y el agua se vuelve líquida nuevamente. Los solutos, como la sal, pueden afectar la velocidad y la uniformidad del proceso de descongelación, lo que puede ser importante para la calidad y seguridad de los alimentos o situaciones de la vida.
+
+\subsection{Conceptos clave}
+
+```{=tex}
+\begin{itemize}
+ \item \textbf{Puntos de congelación: }El punto de      congelación es la temperatura a la que un líquido       comienza a solidificarse. La adición de solutos,        como la     sal, disminuye el punto de congelación del  agua. Este fenómeno se conoce como depresión            crioscópica y se debe a que los iones de sal           interfieren     en la formación de los cristales de    hielo.
+ \item \textbf{Velocidad de congelación: }La velocidad de congelación es la rapidez con la que un líquido se solidifica al disminuir su temperatura. La velocidad de congelación puede depender de varios factores, como la temperatura inicial del líquido, la presión y la tasa de transferencia de calor.
+ \item \textbf{Velocidad de descongelación: }La velocidad de descongelación es la rapidez con la que un sólido se convierte en líquido al aumentar su temperatura. La velocidad de descongelación puede depender de varios factores, como la temperatura ambiente, la presencia de solutos y la tasa de transferencia de calor.
+ \item \textbf{Efecto de la sal en la velocidad de descongelación: } La adición de sal al agua congelada puede afectar la velocidad de descongelación. Si bien la sal puede disminuir el punto de congelación del agua, también puede afectar la forma en que se derrite el hielo al aumentar la densidad del agua y la viscosidad del líquido.
+ \item \textbf{Ley de Arrhenius: }La ley de Arrhenius describe la relación entre la temperatura y la velocidad de una reacción química. Según esta ley, un aumento en la temperatura puede aumentar la velocidad de reacción, mientras que una disminución en la temperatura puede disminuir la velocidad de reacción.
+\end{itemize}
+```
+
+\subsection{Pregunta de investigación}
+¿Cómo afecta la concentración de sal en el agua congelada a la velocidad de descongelación?
+
+\subsection{Metodología}
+Para llevar a cabo el presente experimento, se van a seguir los siguientes pasos para evaluar el efecto de la concentración de sal en la velocidad de descongelación del agua:
+```{=tex}
+\begin{itemize}
+  \item Preparación de los materiales y equipos necesarios, incluyendo recipientes para agua y sal, un termómetro, una gramera y un cronómetro.
+  \item Se prepara soluciones de diferentes concentraciones de sal. Para ello, se pesa la cantidad adecuada de sal y se disuelve en un litro de agua.
+  \item Se llena cada recipiente con la misma cantidad de agua.
+  \item En cada recipiente se añade la cantidad adecuada de sal para obtener la concentración deseada.  Además de agitar bien para asegurar una mezcla homogénea.
+  \item Se colocan los recipientes en el congelador y se espera 12 horas a que el agua se congele.
+  \item Se sacan los recipientes del congelador y se mide la temperatura del agua en cada recipiente después de un tiempo determinado.
+  \item Se registra la concentración de sal y el tiempo de descongelación para cada recipiente.
+  \item Análisis de los datos
+\end{itemize}
+```
+
+\subsection{Modelo de regresión}
+El modelo que se va a utilizar es la regresión lineal simple, se puede expresar de la siguiente manera:
+$$
+y={\beta_0}+{\beta_1}x+{\varepsilon_i}, \ \ {\varepsilon_i} \stackrel{\text{iid}}{\sim} \mathcal{N} (0, \sigma^2)
+$$
+Donde: 
+```{=tex}
+\begin{itemize}
+  \item $y$: Variable dependiente y corresponde a la velocidad de descongelación.
+  \item $x$: Variable independiente y corresponde a la concentración de sal.
+  \item $\beta_0$: Es el intercepto
+  \item $\beta_1$: Es la pendiente
+  \item $\varepsilon_i$: Es el error.
+\end{itemize}
+```
+
+\subsection{Resultados generales de la investigación}
+
+Nuestro objetivo es conocer como afecta la sal en la velocidad de descongelación del agua, plantearemos un modelo de regresión donde se buscara probar si a mayor cantidad de sal hay un menor tiempo de descongelación, así:
+
+$$
+t\_descongelación=\beta_0+\beta_1Gr
+$$
+Siendo $t\_descongelación$ el tiempo de descongelación que tardo la sal en descongelarse totalmente y $Gr$, la cantidad de sal que contiene cada variable.
+
+```{r include=F}
+sal <- read.csv("Salmuera.csv")
+colnames(sal)[1] <- c("Gr")
+modelo1 <- lm(t_descongelacion ~ Gr, data = sal)
+beta1 <- round(coef(modelo1), 4)
+beta2 <- as.data.frame(beta1)
+```
+
+\subsubsection{Modelo de regresión ajustado}
+
+Al plantear el modelo se optienen el siguiente valor del parametro a estudiar: 
+
+```{r}
+rownames(beta2) <- c("$\\hat{\\beta_0}$", "$\\hat{\\beta_1}$"
+                      )
+beta2 %>% 
+  kable(col.names = c("Valor del parámetro"), caption = "Tabla de valores de los coeficientes estimados", escape=F, booktab=T, align="c", row.names=T) %>%
+  kable_styling(latex_options=c("HOLD_position"))
+```
+
+Por lo tanto, el modelo de regresión ajustado sería: 
+
+$$
+\widehat{t\_descongelacion_i} = 88.0661 - 0.1618Gr_i
+$$
+Donde $1\leq i\leq 25$
+
+\subsubsection{Significancia de la regresión}
+
+Para verificar la significancia de la regresión planteada se hara uso de la tabla Anova: 
+
+```{r}
+tabla.anova1 <- myAnova(modelo1)
+rownames(tabla.anova1) <- c("Modelo de regresión", "Error")
+tabla.anova1 %>%
+  kable(col.names=c("Sumas de cuadrados", "g.l", "Cuadrado medio", "$F_0$", "Valor-P"), caption = "Tabla anova significancia de la regresión", escape=F, booktab=T, align="c", row.names=T) %>%
+  kable_styling(latex_options = c("HOLD_position"))
+```
+
+Como el $ValorP<0.005=\alpha$ se rechaza la hipotesis nula, donde se concluye que el modelo $\textbf{RLM}$ propuesto es significativo, por consiguente el tiempo de descongelación del agua puede ser explicado por la cantidad de gramos(Gr) de sal.
+
+\subsubsection{Significancia de los parámetros}
+
+En la siguiente tabla se presenta la información de los parámetros con la cual se estimará si los parametros son significativos en el modelo o no:
+
+```{r}
+tabla.coef1 <- summary(modelo1)$coefficients
+rownames(tabla.coef1) <- paste("$\\beta_", 0:1, "$", sep="")
+tabla.coef1 %>%
+  kable(col.names=c("Estimación $\\beta_j$", "$se(\\hat{\\beta_j})$", "$T_{0j}$", "Valor-P"), 
+        caption="Resumen de los coeficientes", escape=F, booktab=T, row.names = T, align = "c", digits = 4) %>%
+  kable_styling(latex_options = c("HOLD_position"))
+```
+
+El valor P del parametro $\beta_1$ permite concluir que el parametro es significativo para el modelo de regresión planteado.
+
+\subsubsection{Interpretación del parametro}
+
+```{=tex}
+\begin{itemize}
+  \item $\hat{\beta_1}=-0.1618$, indica que por cada unidad que aumente el tiempo de descongelación, los gramos de sal promedio disminuyen en 0.1618 unidades.
+\end{itemize}
+```
+
+\subsubsection{Correlación entre los gramos de sal y el tiempo de descongelación}
+
+En la siguiente tabla se observará el porcentaje de correlación entre las variables del modelo, así:
+
+```{r}
+datos2 <- sal %>%
+  select_(1, 15)
+colnames(datos2) <- c("Gr", "Tiempo de descongelacion")
+correlaciones2 <- cor(datos2)
+#row.names(correlaciones <- cor(datos))
+correlaciones2 %>% 
+  kable(col.names = c("Gr", "Tiempo de descongelacion"), caption = "Correlaciones entre las variables", escape = F, booktab = T, align = "c", row.names = T, digits = 4) %>% 
+  kable_styling(latex_options = c("HOLD_position"))
+```
+
+Dados los valores, vemos que existe una correlación negativa entre las variables del modelo, lo que nos indica que a medida que crece una de las variables la otra decrece, en este caso dependiendo de el aumento de los gramos de sal, el tiempo de descongelación sera menor.
+
+\subsection{Conclusiones y recomendaciones}
+En conclusión, el experimento de sal y agua congelada con una regresión simple ha demostrado que la adición de sal al agua hace que el agua se descongele más rápido. A través del análisis de los datos recopilados y la aplicación de la regresión simple, se pudo establecer una relación lineal entre la concentración de sal y el tiempo de descongelación del agua.
+Los resultados obtenidos respaldan la teoría de que la sal disminuye el punto de congelación del agua debido a la formación de enlaces entre las moléculas de sal y agua, lo que dificulta la formación de cristales de hielo. A medida que se aumenta la concentración de sal en el agua, se observa una disminución correspondiente en la temperatura de congelación.
+Basándonos en los resultados de este experimento, se pueden hacer algunas recomendaciones adicionales:
+```{=tex}
+\begin{itemize}
+  \item 1. Repetir el experimento con diferentes concentraciones de sal: Para obtener una comprensión más completa de cómo la concentración de sal afecta la temperatura de descongelación del agua, se pueden realizar pruebas adicionales utilizando diferentes niveles de concentración de sal. Esto permitirá obtener un conjunto más amplio de datos y una mayor precisión en los resultados.
+  \item 2. Investigar otros factores que afectan el punto de descongelación: Además de la concentración de sal, existen otros factores que pueden influir en el punto de descongelación del agua, como la presión atmosférica y la presencia de impurezas. Sería interesante llevar a cabo experimentos adicionales para examinar cómo estos factores pueden interactuar con la sal y afectar el proceso de descongelación.
+  \item 3. Explorar aplicaciones prácticas: La comprensión de cómo la sal afecta el punto de descongelación del agua tiene diversas aplicaciones prácticas. Por ejemplo, en la industria alimentaria, esta información puede ser utilizada para preservar alimentos durante el almacenamiento y transporte. Asimismo, se pueden investigar otros usos potenciales en campos como la meteorología, la refrigeración y la fabricación de hielo.
+\end{itemize}
+```
+
+```{=tex}
+\newpage
+```
+
+\section{Punto 2 - Estatura Padres e Hijos}
+
+\subsection{Introducción}
+
+La estatura es una característica física que ha sido objeto de estudio durante mucho tiempo debido a su influencia en la salud y la calidad de vida de las personas, ademas de un factor estetico en base al género. La altura de una persona puede estar determinada por diversos factores, incluyendo la genética, alimentación, etc. En este sentido, se ha observado que la altura de los padres puede terner un efecto significativo en la estatura de los hijos.
+
+\subsection{Objetivo}
+
+Analizar si existe la influencia de la estatura de los padres en sus hijos y determinar si existe una correlación significativa.
+
+\subsection{Marco teórico}
+
+La estatura es un rasgo heredable que se transmite de padres a hijos a través de la genética. Los estudios han demostrado que la altura está determinada por varios genes, cada uno de los cuales contribuye con una pequeña parte del fenotipo total. En general, se estima que la heredabilidad de la altura es del 80\% al 90\%. Sin embargo, los factores ambientales también juegan un papel importante en la estatura, como la nutrición, la actividad física, la salud y otros factores relacionados con el estilo de vida.
+
+\subsection{Conceptos clave}
+```{=tex}
+\begin{itemize}
+  \item \textbf{Estatura: }La altura de una persona medida desde la planta del pie hasta la parte superior de la cabeza.
+  \item \textbf{Genética: }El estudio de los genes y su herencia, incluyendo la transmisión de rasgos de padres a hijos.
+  \item \textbf{Ambiente: }El conjunto de factores externos que pueden influir en el desarrollo de una persona, incluyendo la nutrición, el estilo de vida, la exposición a sustancias tóxicas y otros factores.
+  \item \textbf{Nutrición: }El conjunto de procesos biológicos y metabólicos que permiten al organismo obtener y utilizar los nutrientes necesarios para su crecimiento y desarrollo.
+  \item \textbf{Desarrollo: }El proceso de crecimiento y maduración de una persona desde su nacimiento hasta su edad adulta, que incluye cambios físicos, cognitivos y emocionales.
+  \item \textbf{Herencia: }La transmisión de características de padres a hijos a través de los genes.
+\end{itemize}
+```
+
+\subsection{Pregunta de investigación}
+¿Hay relación entre la estatura de los padres y la estatura del hijo?
+
+\subsection{Metodologia}
+Para llevar a cabo el presente experimento se van a seguir los siguientes pasos:
+```{=tex}
+\begin{itemize}
+  \item Identificar las variables que se deben unir. Esto puede requerir una comprensión detallada de cada una de las bases de datos y las relaciones entre las diferentes tablas.
+  \item Análisis de los datos.
+  \item Se analizará los resultados obtenidos en el análisis de datos. Se podría determinar la fuerza de la relación entre las variables, si la relación es significativa o no.
+\end{itemize}
+```
+
+\subsection{Resultados generales de la investigación}
+
+Teniendo en cuenta la base de datos asignada, las covariables utilizadas para desarrollar el objetivos planteado fueron: Estatura del padre(est\_padre) y Estatura de la madre (est\_madre).
+
+El modelo que se propone es el siguiente:
+$$
+est\_hijo_i= \beta_0 + \beta_1est\_padre + \beta_2est\_madre
+$$
+
+```{r include=FALSE}
+database <- read_excel("C:/Users/Juan Manuel/Desktop/Analisis de Regresión/base_datos_estaturas.csv")
+database <- database[,-16]
+database <- database[,-15]
+database <- database[,-14]
+modelo <- lm(est_hijo ~ est_padre+est_madre, data=database)
+betas <- round(coef(modelo), 4)
+betas1 <- as.data.frame(betas)
+```
+\subsubsection{Modelo de regresión}
+
+Al ajustar el modelos de regresión, se obtienen los siguientes coeficientes:
+```{r}
+rownames(betas1) <- c("$\\hat{\\beta_0}$", "$\\hat{\\beta_1}$"
+                      , "$\\hat{\\beta_2}$")
+betas1 %>% 
+  kable(col.names = c("Valor del parámetro"), caption = "Tabla de valores de los coeficientes estimados", escape=F, booktab=T, align="c", row.names=T) %>%
+  kable_styling(latex_options=c("HOLD_position"))
+```
+
+Por lo tanto el modelo de regresión ajustado es:
+
+$$
+\widehat{est\_hijo_i}=41.4916 + 0.3463est\_padre_i + 0.4124est\_madre_i
+$$ Donde $1\leq i \leq 355$
+
+\subsubsection{Significancia de la regresión}
+
+Para la significancia de la regresión se hará uso de la siguiente tabla Anova:
+
+```{r}
+tabla.anova <- myAnova(modelo)
+rownames(tabla.anova) <- c("Modelo de regresión", "Error")
+tabla.anova %>%
+  kable(col.names=c("Sumas de cuadrados", "g.l", "Cuadrado medio", "$F_0$", "Valor-P"), caption = "Tabla anova significancia de la regresión", escape=F, booktab=T, align="c", row.names=T) %>%
+  kable_styling(latex_options = c("HOLD_position"))
+```
+
+Como el $ValorP < 0.05 = \alpha$ se rechaza la hipotesis nula, donde se concluye que el modelo \textbf{RLM} propuesto es significativo, por consiguiente la estatura de el hijo puede ser explicada por al menos una de las variables predictoras del modelo.
+
+Por otro lado, tenemos que el porcentaje de error es alto, esto se debe a la variabilidad de los valores de las variables.
+
+\subsubsection{Significancia de los parámetros}
+
+En la siguiente tabla se presenta la información de los parámetros con la cual se estimará si los parametros son significativos en el modelo o no:
+
+```{r}
+tabla.coef <- summary(modelo)$coefficients
+rownames(tabla.coef) <- paste("$\\beta_", 0:2, "$", sep="")
+tabla.coef %>%
+  kable(col.names=c("Estimación $\\beta_j$", "$se(\\hat{\\beta_j})$", "$T_{0j}$", "Valor-P"), 
+        caption="Resumen de los coeficientes", escape=F, booktab=T, row.names = T, align = "c", digits = 4) %>%
+  kable_styling(latex_options = c("HOLD_position"))
+```
+
+Los valores P perminten concluir con una significancia $\alpha =$ 0.05 que $\hat{\beta_1}$ y $\hat{\beta_2}$ son significativos en el modelo de regresión planteado.
+
+\subsubsection{Interpretación de los parametros}
+
+```{=tex}
+\begin{itemize}
+  \item \textbf{$\hat{\beta_1}$:} Estatura del padre $\hat{\beta_1}= 0.3463$ indica que por cada unidad que aumente la estatura del padre, el promedio de la estatura del hijo va a aumentar 0.3463 unidades
+  \item \textbf{$\hat{\beta_2}$:} Estatura de la madre $\hat{\beta_2}= 0.4124$ indica que por cada unidad que aumente la estatura de la madre, el promedio de la estatura del hijo va a aumentar 0.4124 unidades
+\end{itemize}
+```
+
+\subsubsection{Correlación entre la estatura del hijo y sus padres}
+
+```{r}
+datos <- database %>%
+  select_(2, 6, 10)
+colnames(datos) <- c("Estatura Padre", "Estatura Madre", "Estatura Hijo")
+correlaciones <- cor(datos)
+#row.names(correlaciones <- cor(datos))
+correlaciones %>% 
+  kable(col.names = c("Estatura Padre", "Estatura Madre", "Estatura Hijo"), caption = "Correlaciones entre las variables", escape = F, booktab = T, align = "c", row.names = T, digits = 4) %>% 
+  kable_styling(latex_options = c("HOLD_position"))
+```
+
+Dados los valores vemos que existe una correlación moderada entre la estatura del hijo y la estatura de los padres por separado.
+
+Ahora mostraremos si la estatura promedio entre el padre y la madre tiene una mayor correlacion con la estatura del hijo, asi:
+
+```{r}
+datos1 <- database %>%
+  select_(2, 6, 10)
+datos1 <- datos1 %>%
+  mutate(est_promedio = (est_madre + est_padre)/2)
+colnames(datos1) <- c("Estatura Padre", "Estatura Madre", "Estatura Hijo",
+                     "Promedio Padres")
+correlaciones2 <- cor(datos1)
+#row.names(correlaciones2 <- cor(datos1))
+correlaciones2 %>% 
+  kable(col.names = c("Estatura Padre", "Estatura Madre", "Estatura Hijo", "Promedio Padres"), caption = "Correlaciones entre las variables", escape = F, booktab = T, align = "c", row.names = T, digits = 4) %>% 
+  kable_styling(latex_options = c("HOLD_position"))
+```
+
+Evidenciamos que la correlación de la estatura de los hijos con respecto al promedio es mayor a los dos valores tomados por aparte.
+
+```{=tex}
+\newpage
+```
+
+Ahora mostraremos gráficamente las correlaciones mencionadas anteriormente
+
+```{r fig.cap="Gráfico de correlaciones" , echo=FALSE, fig.align = "center", fig.height = 8, fig.width = 10, out.width = "70%"}
+pairs(datos1, pch=19, main = "Correlaciones entre las estaturas
+      de los padres y los hijos", cex.labels = 1.8, col="skyblue3")
+```
+
+De esta forma podemos ver de una mejor manera que hay una correlación moderada, esto se debe a la gran variabilidad de estaturas, lo cual, como anteriormente se evidencio en la tabla Anova, hizo que el modelo presentara un porcentaje de error grande.
+
+\subsection{Conclusiones y recomendaciones}
+
+Podemos decir que, debido a la gran variabilidad de las estaturas, los errores generados por el modelo son grandes, pero esto no nos puede desanimar, si no que al contrario nos debería inspirar a seguir investigando este tema ya que estudiar esto puede ser especialmente útil en contextos como la medicina pediátrica y la planificación familiar. Además, es recomendable llevar a cabo investigaciones adicionales para comprender mejor los mecanismos genéticos y ambientales que contribuyen a la estatura de los hijos. Esto podría proporcionar información más precisa y detallada sobre cómo se hereda la estatura y cómo se pueden predecir con mayor precisión los resultados en términos de estatura en la descendencia.
+```{=tex}
+\newpage
+```
+
+\section{Punto 3 - Mundiales de fútbol}
+
+\subsection{Introducción}
+
+El fútbol es uno de los deportes más populares del mundo y el evento central de este es el mundial, donde cada país participa por demostrar que tiene la mejor selección del mundo. En los ultimos años, ha habido un interés creciemte en analizar las características físicas de los jugadores de fútbol. Una de las variablas mas estudiadas es la relación entre la altura y el peso de los jugadores y su desempeño en el campo. En este contexto, el objetivo de este estudio es analizar la relación entre la altura y el peso de los jugadores que participaron en los mundiales de 2014 y 2022.
+
+\subsection{Objetivo}
+
+```{=tex}
+El objetivo principal de este estudio es analizar la relación entre la altura y el peso de los jugadores de los mundiales de fútbol de 2014 y 2022. Ademas, se pretende:
+\begin{itemize}
+  \item Identificar si existe una relación entre la altura y el peso de los jugadores.
+  \item Analizar si la relación entre la altura y el peso de los jugadores ha cambiado en los últimos años.
+\end{itemize}
+```
+
+\subsection{Marco teórico}
+
+La altura y el peso son dos de las variables físicas más relevantes en el fútbol moderno. La literatura existente indica que la altura y el peso pueden influir significativamente en el rendimiento de los jugadores de fútbol y, por tanto, en el éxito de un equipo. En este sentido, algunos estudios sugieren que los jugadores más altos tienen ventajas den el juego aéreo, tanto en el ataque como en defensa. Por otro lado, los jugadores mas pesados pueden tener una posición ventajosa en las situaciones de contacto físico, aunque tambien pueden carecer de movilidad y/o resistencia.
+
+En cuanto a la posición en el campo, se ha demostrado que la altura y el peso pueden influir de manera diferente en el rendimiento de los jugadores según la posición que ocupen en el terreno de juego. En general, los defensas y los delanteros tienden a ser más altos y pesafos que los jugadores del mediocampo. Así, se ha sugerido que la posición que ocupa un jugador en el campo puede influir en el tipo habilidades y características físicas que son mas importantes para su rendimiento.
+
+En cuanto al Mundial de Fútbol de 2014 y 2022, participaron algunos de los mejores jugadores del mundo, por lo que el análisis de la relación entre la altura y el peso en el campo de los jugadores puede ser de gran interés para la comunidad científica y para los aficionados al fútbol.
+
+\subsection{Conceptos clave}
+
+```{=tex}
+\begin{itemize}
+  \item \textbf{Altura:} La medida vertical de un objeto, en este caso, se refiere a la estatura de los jugadores de fútbol.
+  \item \textbf{Peso:} La medida de la masa de un objeto, en este caso, se refiere al peso de los jugadores de fútbol.
+  \item \textbf{Mundia de Fútbol:} El evento deportivo más importante a nivel mundial en el deporte del fútbol, en el que participan equipos nacionales de diferentes países.
+  \item \textbf{Posición en el campo:} La posición específica en la que un jugador de fútbol juega durante un partido, como delantero, defensa, centrocampista, etc.
+  \item \textbf{Edad:} la cantidad de años que tiene un jugador de fútbol.
+\end{itemize}
+```
+
+\subsection{Pregunta de investigación}
+
+¿Existe una relación entre la altura y el peso de los jugadores del mundial de fútbol de 2014 y 2022?
+
+\subsection{Metodologia}
+
+Para llevar a cabo el presente experimento, se van a seguir los siguientes pasos:
+```{=tex}
+\begin{itemize}
+  \item Realizar el respectivo análisis descriptivo a la base de datos extraida de las diapositivas de clase
+  \item Análisis de los datos
+  \item Se analizará los resultados obtenidos en el análisis de datos. Se podría determinar la fuerza de la relación entre los jugadores de los mundiales de 2014 y 2022, si la relación es significativa o no.
+\end{itemize}
+```
+
+
+\subsection{Modelo de regresión}
+
+El modelo que se va a utilizar es la regresión lineal simple, se puede expresar de la siguiente manera:
+
+$$
+y={\beta_0}+{\beta_1}x+{\varepsilon_i}, \ \ {\varepsilon_i} \stackrel{\text{iid}}{\sim} \mathcal{N} (0, \sigma^2)
+$$
+
+Donde: 
+
+```{=tex}
+\begin{itemize}
+  \item $y$: Variable dependiente y corresponde a la velocidad de descongelación.
+  \item $x$: Variable independiente y corresponde a la concentración de sal.
+  \item $\beta_0$: Es el intercepto
+  \item $\beta_1$: Es la pendiente
+  \item $\varepsilon_i$: Es el error.
+\end{itemize}
+```
+
+```{=tex}
+\newpage
+```
+
+\subsection{Resultados generales de la investigación}
+
+```{r include=F}
+db <- read.csv("BRASIL_2014.txt", sep=" ")
+dq <- read.csv("QATAR_2022.txt", sep=" ")
+#db <- matrix(db, ncol=7,byrow=T)
+#dq <- matrix(dq, ncol=7,byrow=T)
+colnames(db) <- c("equipo","dia", "mes", "año", "estatura", "peso", "arquero")
+colnames(dq) <- c("equipo","dia", "mes", "año", "estatura", "peso", "arquero")
+brasil <- data.frame(db)
+qatar <- data.frame(dq)
+```
+
+\subsubsection{Análisis exploratorio}
+
+```{r include=F}
+summary(brasil)
+summary(qatar)
+```
+
+```{r include=F}
+# La edad en años empieza en 00, por lo tanto le sumaremos 1900 al año
+# y lo pondremos en el dataframe
+
+ab <- brasil$año + 1900 # SOLO CORRERLO UNA VEZ
+brasil<-cbind(brasil,ab) # Une el vector al dataframe
+brasil <- brasil[, -4] # Elimina la columna
+mbrasil = subset (brasil, select=c(1,2,3,7,4,5,6)) # Ordena el dataframe
+brasil <- mbrasil %>% rename (año = ab) # Cambia el nombre
+
+aq <- qatar$año + 1900 # SOLO CORRERLO UNA VEZ
+qatar<-cbind(qatar,aq) # Une el vector al dataframe
+qatar <- qatar[, -4] # Elimina la columna
+mqatar = subset (qatar, select=c(1,2,3,7,4,5,6)) # Ordena el dataframe
+qatar <- mqatar %>% rename (año = aq) # Cambia el nombre
+
+# Difereciemoslos por mundial
+
+mundial <- rep("Brasil", 543)
+brasil<-cbind(brasil,mundial)
+mundial <- rep("Qatar",569)
+qatar<-cbind(qatar,mundial)
+```
+
+Con la siguiente gráfica queremos ver cuales son las variables que tienen una mayor correlación entre ellas, así:
+
+```{r fig.cap="Gráfico de correlaciones del mundial Brasil 2014", echo=FALSE, fig.align = "center", fig.height = 8, fig.width = 10, out.width = "65%"}
+pairs(brasil[, c('año', 'estatura', 'peso')], pch=19, col="aquamarine2", cex.labels = 2, main="Gráfico de correlaciones del mundial Brasil 2014")
+```
+
+```{r fig.cap="Gráfico de correlaciones del mundial Qatar 2022", echo=FALSE, fig.align = "center", fig.height = 8, fig.width = 10, out.width = "65%"}
+pairs(brasil[, c('año', 'estatura', 'peso')], pch=19, col="red1", cex.labels = 2, main="Gráfico de correlaciones del mundial Qatar 2022")
+```
+
+Como podemos observar en la gráficas, las variables que tienen una mayor correlación son la estatura y el peso, por lo tanto se hara el modelo de regresión con ellas.
+
+```{r include=F}
+mb_pe_es <- lm(brasil$peso ~ brasil$estatura)
+mq_pe_es <- lm(qatar$peso ~ qatar$estatura)
+```
+
+Cómo se puede observar ambos modelos son similares, lo que podria ser un indicio de que ambas poblaciones de jugadores estan relacionadas o son la misma, esto, tendria sentido ya que muchas selecciones estuvieron en ambos mundiales. Esto nos génera la siguiente duda, ¿son estas dos poblaciones iguales, o por lo menos sus parámetros lo son?, con lo que llevamos hasta ahora parece que si, pero necesitariamos hacer una prueba $\textbf{L.R.T}$, para poder decir con un 95% de certeza si son la misma población o no, Así:
+
+\subsubsection{Prueba L.R.T}
+
+$\textbf{Planteamiento de la prueba de hipótesis}$
+
+$$
+\begin{cases}
+\begin{aligned}
+\text{H}_0&: \beta_0(Brasil) = \beta_0(Qatar); \beta_1(Brasil) = \beta_1(Qatar); \sigma(Brasil) = \sigma(Qatar) \\
+\text{H}_1&: \beta_0(Brasil) \neq \beta_0(Qatar);\beta_1(Brasil) \neq \beta_1(Qatar); \sigma(Brasil) \neq \sigma(Qatar)
+\end{aligned}
+\end{cases}
+$$
+
+```{r include=F}
+mund <- rbind(brasil, qatar) # Unir los dos dataframes en uno
+
+nb <- 544 #length(brasil$estatura)
+nq <- 570 #length(qatar$estatura)
+sb <- 4.237
+sq <- 4.768
+
+nm <- 1114 #length(mund$estatura)
+sm <- 4.536
+
+-2*log(((sb^nb)*(sq^nq))/(sm^nm))
+-2*(log((sb^nb)*(sq^nq)) - log(sm^nm))
+# WOLFRAM
+-2*(nb*log(sb)+nq*log(sq) - nm*log(sm))
+qchisq(0.05,3, lower.tail = FALSE)
+```
+
+Primero, obtenemos el valor del estadistico, el cual se hace de la siguiente manera:
+$$
+-2(544*log(4.237)+570+log(4.768)-1114*log(4.536)) = 17.3260
+$$
+
+Dónde se sigue la formula dada, despues de esto procedemos a hallar a Chi con la funcion qchisq:
+$$
+Chi = 7.8147
+$$
+
+Como el estadístico dió como resultado 17.3260 y esto es mayor que el Chi dado, rechazamos la prueba. Podemos concluir que ambos mundiales no son de la misma población.
+
+Ahora como sabemos que las poblaciones son distintas es muy util saber cual es el parámetro que no es igual, por lo tanto haremos pruebas de hipótesis para los $\beta_0$, $\beta_1$ y $\sigma$.
+
+$\textbf{Prueba para Beta0}$
+
+$$
+\begin{cases}
+\begin{aligned}
+\text{H}_0&: \beta_0(Brasil) = \beta_0(Qatar) \\
+\text{H}_1&: \beta_0(Brasil) \neq \beta_0(Qatar)
+\end{aligned}
+\end{cases}
+$$
+
+Calculamos el intervalo de aceptacion y el estadístico de prueba, así:
+
+```{r include=F}
+b0b <- -75.9229
+b0q <- -74.408
+sb0b <- 5.07123
+sb0q <- 5.25685 
+
+(b0b - b0q)/sqrt(sb0b^2 + sb0q^2)
+
+qnorm(p= 0.025, mean = 0, sd = 1, lower.tail = TRUE)
+qnorm(p= 0.975, mean = 0, sd = 1, lower.tail = TRUE)
+```
+El cálculo de el estadístico de prueba es el siguiente:
+
+$$
+\frac{-75.9229+74.408}{\sqrt((5.0712)^2+(5.2568)^2)} = -0.2074
+$$
+La región de aceptación esta entre (-1.9599, 1.9599).
+
+Como el estadístico de prueba nos arrojo un valor que esta dentro de la región de aceptación, no tenemos evidencia suficiente para rechazar HO, por lo tanto $\beta_0(Brasil)$ y $\beta_0(Qatar)$ son estadísticamente iguales.
+
+$\textbf{Prueba para los Beta1}$
+
+$$
+\begin{cases}
+\begin{aligned}
+\text{H}_0&: \beta_1(Brasil) = \beta_1(Qatar) \\
+\text{H}_1&: \beta_1(Brasil) \neq \beta_1(Qatar)
+\end{aligned}
+\end{cases}
+$$
+```{r include = F}
+b1b <- 0.8395
+b1q <-  0.826
+sb1b <- 0.02793   
+sb1q <-  0.02883   
+
+(b1b - b1q)/sqrt(sb1b^2 + sb1q^2)
+
+qnorm(p= 0.025, mean = 0, sd = 1, lower.tail = TRUE)
+qnorm(p= 0.975, mean = 0, sd = 1, lower.tail = TRUE)
+```
+
+$$
+\frac{0.8395-0.826}{\sqrt((0.0279)^2+(0.0288)^2)} = 0.3363
+$$
+La región de aceptación esta entre (-1.9599, 1.9599).
+
+Como el estadístico de prueba nos arrojo un valor que esta dentro de la región de aceptación, no tenemos evidencia suficiente para rechazar HO, por lo tanto $\beta_1(Brasil)$ y $\beta_1(Qatar)$ son estadísticamente iguales.
+
+$\textbf{Prueba para los Sigma}$
+
+$$
+\begin{cases}
+\begin{aligned}
+\text{H}_0&: \sigma(Brasil) = \sigma(Qatar) \\
+\text{H}_1&: \sigma(Brasil) \neq \sigma(Qatar)
+\end{aligned}
+\end{cases}
+$$
+
+```{r include=F}
+nb <- 544 #length(brasil$estatura)
+nq <- 570 #length(qatar$estatura)
+sb <- 4.237 # Sigma de Brasil
+sq <- 4.768 # Sigma de Qatar
+
+(sb^2/nb)/(sq^2/nq)
+
+limup <- 1/qf(0.975,nq-1,nb-1)
+limdown <- qf(0.975,nb-1,nq-1)
+limup
+limdown
+```
+
+Para realizar esta prueba se calcúla el estadístico y porteriormente se encuentra la región de aceptación, así:
+
+Calculamos el estadístico: 
+$$
+\frac{(4.237)^2/544}{(4.768)^2/570} = 0.8274
+$$
+Ahora, el intervalo de aceptación es el siguiente:
+
+$$
+(0.8465, 1.1809)
+$$
+Como el estadístico esta por fuera de la región de aceptacion, tenemos evidencia suficiente para rechazar $\text{H}_0$, por lo tanto podemos concluir que las varianzas de los modelos son estadísticamente diferentes.
+
+\subsubsection{Modelo de regresión para cada uno de los mundiales}
+
+Cómo sabemos que las varianzas son distintas, no podemos crear un modelo conjunto con los datos de Qatar y de Brasil; por lo tanto vamos a utilizar dos modelos uno para Brasil y otro para Qatar, ambos modelos tendrán el peso en kg como variable respuesta y la variable explicativa será la estatura en cm.
+
+```{=tex}
+\newpage
+```
+
+```{=tex}
+\textbf{Mundial de Brasil 2014}
+```
+
+```{r}
+modelo_qatar <- lm(qatar$peso ~ qatar$estatura)
+modelo_brasil <- lm(brasil$peso ~ brasil$estatura)
+```
+
+```{r fig.cap="Relación entre estatura y peso mundial de Brasil 2014", echo=FALSE, fig.align = "center", fig.height = 8, fig.width = 10, out.width = "65%"}
+ggplot(brasil, aes(x=brasil$estatura, y=brasil$peso)) + 
+  geom_point() +
+  geom_smooth(method="lm", formula= y ~ x, 
+              se=FALSE, col='#0F8E2F') +
+  theme_light() +
+  labs(title = "Relación entre estatura y peso mundial Brasil 2014",
+       x = "Estatura (cm)", y = "Peso (kg)")
+```
+
+```{=tex}
+\textbf{Mundial de Qatar 2022}
+```
+
+```{r fig.cap="Relación entre estatura y peso mundial de Qatar 2022", echo=FALSE, fig.align = "center", fig.height = 8, fig.width = 10, out.width = "65%"}
+ggplot(qatar, aes(x=qatar$estatura, y=qatar$peso)) + 
+  geom_point() +
+  geom_smooth(method="lm", formula= y ~ x, 
+              se=FALSE, col='#64011A') +
+  theme_light() +
+  labs(title = "Relación entre estatura y peso mundial Qatar 2022",
+       x = "Estatura (cm)", y = "Peso (kg)")
+```
+
+\subsubsection{Tablas Anova de cada uno de los modelos individuales}
+
+$\textbf{Modelo del mundial Brasil 2014}$
+
+```{r}
+tabla_brasil <- myAnova(modelo_brasil)
+rownames(tabla_brasil) <- c("Modelo de regresión", "Error")
+tabla_brasil %>%
+  kable(col.names=c("Sumas de cuadrados", "g.l", "Cuadrado medio", "$F_0$", "Valor-P"), caption = "Tabla anova significancia de la regresión", escape=F, booktab=T, align="c", row.names=T) %>%
+  kable_styling(latex_options = c("HOLD_position"))
+```
+
+\textbf{Modelo del mundial Qatar 2022}
+```{r}
+tabla_qatar <- myAnova(modelo_qatar)
+rownames(tabla_qatar) <- c("Modelo de regresión", "Error")
+tabla_qatar %>%
+  kable(col.names=c("Sumas de cuadrados", "g.l", "Cuadrado medio", "$F_0$", "Valor-P"), caption = "Tabla anova significancia de la regresión", escape=F, booktab=T, align="c", row.names=T) %>%
+  kable_styling(latex_options = c("HOLD_position"))
+```
+
+Como podemos observar, bajo un Valor-P=$\alpha=0.05$, ambos modelos de regresión son significativos y ambos explican el peso de los jugadores dada su estatura.
+
+\subsubsection{Conclusiones}
+
+Gracias a la prueba L.R.T. sabemos que si hay cambiós significativos en los parámetros corporales de los jugadores de fútol, especificamente la diferencia radica en la desviación estandar. Esta conclusión tiene sentido ya que a lo largo del tiempo se a ido mejorando la dieta, entrenamiento y disciplina de todos los deportistas.
+Tenemos que tener en cuenta que en los últimos años en este deporte (fútbol) a habido un gran cambio en el físico y mentalidad de los jugadores ya que los entrenadores no sólo buscan jóvenes buenos jugando fútbol, si no que también buscan que tengan un muy buen rendimiento físico, una altura considerable y una disciplina muchisimo mayor que la de los jugadores de hace 20 años o mas; en pocas palabras hace 20 años un joven bueno jugando futbol podría lleagar a un mundial, pero ahora también se necesita que sea un atleta en todo el sentido de la palabra. Todos estos cambios generan que los deportistas sean mas comprometidos con las ideas de los entrenadores y nutricionistas y no es extraño ver a jugadores pasar de ser muy delgados a tener una masa muscular muy alta en un periodo de tiempo de meses, o pasar de tener estrategias muy estáticas a estrategias mucho mas rápidas en cuestion de semanas, todos estos cambios que los jugadores son capaces de hacer se ven refeljados en los modelos presentados, ya que los jugadores de Brasil 2014 son muy diferentes a los jugadores de Qatar 2022, ya que los entrenadores y cuerpo técnico se adaptan a las medidas corporales, técnicas y tácticas que funcionan, y si un jugador no es capaz de adaptarse a la misma velocidad con la que cambian no podrá mantenerse en la elite del futbol.
+
+```{=tex}
+\newpage
+```
+
+\section{Punto 4 - Venta de carros Renault Logan de segunda mano}
+
+\subsection{Preparación de los datos}
+
+Los datos de los carros son parte del catalogo de ventas de coches
+procedentes de Tu carro y de la plataforma mercado libre. El objetivo de
+este análisis es crear un modelo que sea capaz de predecir el precio de
+venta de un carro basándose en varias características existentes en el
+mercado actual. Se utilizará un modelo de regresión lineal multiple.
+
+\subsection{Análisis exploratorio}
+
+El análisis exploratorio de datos es una fase muy importante, ya que en
+la exploracion de los datos, para observar si hay algún patrón que pueda
+indicar algún tipo de correlación.
+
+```{r}
+carros11 <- read_excel("carros11.xlsx")
+```
+
+```{=tex}
+\textbf{Resumen de las variables numericas}
+```
+
+```{r}
+summary(carros11[, c("Año", "Precio", "Kilometros", "Potencia", "Asientos")])
+```
+```{=tex}
+\textbf{Frecuencia de las variables categoricas}
+```
+
+```{r}
+table(carros11$Combustible)
+table(carros11$Tipo_vendedor)
+table(carros11$Transmision)
+```
+
+```{r}
+precio <- (carros11$Precio)/1000000
+carros <- cbind(carros11,precio)
+```
+
+Creamos una columna del precio, pero sin los millones y una columna que nos diga que tan viejo es el carro 
+
+Les pondremos 1 año de mas para que los carros que sean de este año 2023
+y que se estan vendiendo no aparezcan cómo si fueran carros nuevos.
+Además, también vamos a crear mas adelante una columna que relacione el
+kilometraje con la vejez y cómo es una división, la vejez no puede ser
+0.
+
+```{r}
+vejez <- 2024-carros$Año
+carros <- cbind(carros,vejez)
+```
+
+Creamos una columna que nos relacione el kilometraje con la vejez:
+
+Lo ideal es que el máximo de recorrido por año no sobrepase los 20.000
+kilómetros máximo. Obviamente, si el carro ha sido bastante más usado,
+valdrá mucho menos que uno que ha recorrido pocos kilómetros de acuerdo
+los años que tiene.
+
+```{r}
+kv <- (carros$Kilometros)/(carros$vejez)
+carros <- cbind(carros,kv)
+```
+
+Distribución de nuestra variable de interes que es el precio:
+
+```{r fig.cap="Histograma de los precios", echo=FALSE, fig.align = "center", fig.height = 8, fig.width = 10, out.width = "65%"}
+hist(x = precio, main = "Histograma de los precios", col="green",
+     xlab = "Precio en millones", ylab = "Frecuencia")
+```
+
+```{=tex}
+\textbf{Resumen de los precios de los carros}
+```
+
+```{r}
+summary(carros$precio)
+```
+
+Podemos concluir que la mayoría de los precios de venta de los carros
+usados de la marca y modelo Renault Logan son inferiores a 45.000.000
+
+\subsection{Modelos}
+
+```{r fig.cap="Grafico de correlaciones", echo=FALSE, fig.align = "center", fig.height = 8, fig.width = 10, out.width = "65%"}
+pairs(carros[, c("precio", "vejez", "Kilometros", "Potencia")],
+      pch=19, col="brown2", cex.labels = 2, main="Gráfico de correlaciones")
+```
+
+```{r}
+correla <- cor(carros[, c("precio", "vejez", "Kilometros", "Potencia")])
+correla %>% 
+  kable(col.names = c("precio", "vejez", "Kilometros", "Potencia"), caption = "Correlaciones entre las variables", escape = F, booktab = T, align = "c", row.names = T, digits = 4) %>% 
+  kable_styling(latex_options = c("HOLD_position"))
+```
+
+Uno de los supestos que se tiene en la industria es que la relación
+entre kilometros por vejéz del vehículo afecta de manera muy
+significativa al precio del vehículo, lo cuál tiene todo el sentido del
+mundo ya que según la literatura lo ideal es que el vehiculo no supere
+los 20.000 kilómetros por año, pero cómo acabamos de comprobar en este
+caso este supuesto no se cumple ya que el coeficiente de correlacion
+entre el precio y la relacion kilometro-vejez es de 0.1345006, pero la
+correlación entre precio y vejez es de -0.9448070, y la correlación
+entre precio y kilómetros es de -0.8040971. Por lo tanto, segpún estos
+datos los vendedores de este vehículo en estás páginas si consideran la
+vejez y el kilometraje a la hora de determinar el precio de sus
+vehículos, pero no consideran la relación kilometros-vejez.
+
+No podemos suponer que los vendedores desconocen esta relación, ya que
+lo mas importante de esta relación es ver que el vehículo no supere los
+20.000 kilometros por año, y en esta base de datos la gran mayoria (al
+menos el 75% de los datos) están por debajo de los 12.000 kilometros por
+año, de hecho la media se situa sobre los 10.217 kilometros por año, por
+lo tanto esta variable no es significativa.
+
+\subsubsection{Modelo 1}
+
+```{r}
+modelo34 <- lm(precio ~ vejez + Kilometros + Potencia + kv, data = carros)
+tabla.anova34 <- myAnova(modelo34)
+rownames(tabla.anova34) <- c("Modelo de regresión", "Error")
+tabla.anova34 %>%
+  kable(col.names=c("Sumas de cuadrados", "g.l", "Cuadrado medio", "$F_0$", "Valor-P"), caption = "Tabla anova significancia de la regresión", escape=F, booktab=T, align="c", row.names=T) %>%
+  kable_styling(latex_options = c("HOLD_position"))
+```
+Por lo dicho antes vamos a descartar la relación kilometros-vejez.
+
+\subsubsection{Modelo 2}
+```{r}
+modelo35 <- lm(precio ~ vejez + Kilometros + Potencia, data = carros)
+tabla.anova35 <- myAnova(modelo35)
+rownames(tabla.anova35) <- c("Modelo de regresión", "Error")
+tabla.anova35 %>%
+  kable(col.names=c("Sumas de cuadrados", "g.l", "Cuadrado medio", "$F_0$", "Valor-P"), caption = "Tabla anova significancia de la regresión", escape=F, booktab=T, align="c", row.names=T) %>%
+  kable_styling(latex_options = c("HOLD_position"))
+```
+Ya que este modelo de vehículo es mas que todo utilizado en ciudad la
+potencia no será tomada en cuenta para el modelo final, pero este modelo
+ya de por sí es significativo.
+
+\subsubsection{Modelo final}
+
+```{r}
+modelo36 <- lm(precio ~ vejez + Kilometros, data = carros)
+tabla.anova36 <- myAnova(modelo36)
+rownames(tabla.anova36) <- c("Modelo de regresión", "Error")
+tabla.anova36 %>%
+  kable(col.names=c("Sumas de cuadrados", "g.l", "Cuadrado medio", "$F_0$", "Valor-P"), caption = "Tabla anova significancia de la regresión", escape=F, booktab=T, align="c", row.names=T) %>%
+  kable_styling(latex_options = c("HOLD_position"))
+```
+
+Este modelo funciona ya que el estadístico p-value es menor que un nivel
+de significancia de 0.05
+
+```{r fig.cap="Grafico de correlaciones entre la vejez, precio en millones y kilometros", echo=FALSE, fig.align = "center", fig.height = 8, fig.width = 10, out.width = "65%"}
+library(scatterplot3d)
+scatterplot3d(x=carros$Kilometros, y=carros$vejez, z=carros$precio, 
+              pch=16, cex.lab=1,
+              highlight.3d=TRUE, type="h", xlab='Kilómetros',
+              ylab='vejez (años)', zlab='precio (millones)')
+```
+
+Ya que según la literatura, la relación kilómetros-vejez es muy
+importante a la hora de determinar el precio de un vehículo, decidimos
+hacer este modelo lineal múltiple ya que tiene como variable respuesta
+el precio en millones de pesos y tiene como variables explicativas la
+vejez del vehículo y el número de kilometros.
+
+\subsection{Conclusiones}
+La economía es un sistema complejo, y en él se pueden encontrar muchas
+variables que afectan los precios de los productos y servicios. Uno de
+los fenómenos que ha sido observado en los últimos tiempos es el aumento
+de los precios de los carros usados, especialmente en períodos de
+inflación después de la pandemia del Covid-19. En primer lugar, es
+importante tener en cuenta que los carros usados son un bien duradero,
+es decir, tienen una vida útil prolongada. Por lo tanto, a diferencia de
+otros bienes que pueden depreciarse rápidamente, los carros usados
+mantienen un valor relativamente estable a lo largo del tiempo. Esto
+significa que en períodos de inflación, cuando el valor del dinero se
+devalúa, el precio de los carros usados puede aumentar en términos
+nominales, aunque en realidad su valor intrínseco no haya cambiado.
+
+Otra posible causa del aumento de los precios de los carros usados
+después de la pandemia del Covid-19 es el aumento de la demanda. Debido
+a la crisis sanitaria, muchas personas optaron por evitar el transporte
+público colapsado en determinadas horas del día y han optado por comprar
+un carro para desplazarse con mayor seguridad. Además, la pandemia ha
+afectado la producción de carros nuevos, lo que ha limitado la oferta de
+vehículos nuevos en el mercado. Esta combinación de factores ha generado
+una mayor demanda de carros usados, lo que ha hecho que los precios
+suban.
+
+Por último, también es posible que el aumento de los precios de los
+carros usados esté relacionado con el aumento de la oferta de dinero.
+Durante la pandemia del Covid-19, los gobiernos de muchos países han
+implementado políticas monetarias expansivas para estimular la economía.
+Esto ha hecho que el dinero esté disponible en mayor cantidad y que los
+precios de los bienes y servicios aumenten en general, incluyendo los
+carros usados.
+
+Cabe aclarar que el modelo propuesto no funciona en todos los casos, ya
+que por todo lo dicho anterior, si la situación económica se estbiliza
+puede que este modelo no funcione, cómo también puede que la variable
+kilometro-vejez tenga mas importancia.
+
