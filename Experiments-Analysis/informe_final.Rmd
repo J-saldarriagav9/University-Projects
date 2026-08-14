@@ -1,0 +1,473 @@
+---
+header-includes:
+- \usepackage[utf8]{inputenc}
+- \setlength{\parindent}{0cm}
+- \usepackage{amsmath}
+- \usepackage{array}
+- \usepackage{float}
+- \usepackage{multirow}
+- \usepackage[spanish, es-tabla]{babel}\decimalpoint
+output:
+  pdf_document:
+    number_sections: yes
+fontsize: 10pt
+papersize: letter
+geometry: margin = 1in
+language: es
+editor_options:
+  markdown:
+    wrap: 72
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F, fig.align = "center", fig.pos = "H")
+```
+
+```{=tex}
+\input{titlepage}
+\thispagestyle{empty}
+\tableofcontents
+\newpage
+\thispagestyle{empty}
+\listoffigures
+\listoftables
+\newpage
+```
+
+```{=tex}
+\pagestyle{myheadings}
+\setcounter{page}{3}
+```
+
+```{r include = FALSE}
+library(tidyverse)
+library(car)
+library(ggplot2)
+library(gridExtra)
+library(kableExtra)
+library(lme4)
+library(nlme)
+library(lmtest) # Durbin-Watson test
+library(forecast) # Funcion BoxCox.lambda
+```
+\section{Introducción}
+
+Las flores, con su diversidad de formas, colores y aromas, representan un regalo de la naturaleza que no solo embellece nuestro entorno, sino que también infunde alegría y vitalidad en cualquier espacio donde se encuentren. Estos tesoros botánicos son ampliamente utilizados en arreglos florales, siendo protagonistas en eventos, decoraciones y expresiones de afecto. Sin embargo, detrás de la exquisita belleza de estos arreglos yace una preocupación latente: el impacto ambiental de los materiales utilizados para mantener las flores sin marchitarse por un periodo de tiempo más prolongado de lo que naturalmente sería. Uno de estos materiales es el poliuretano, popularmente conocido como $oasis$. Aunque su función en la creación de arreglos florales es indiscutiblemente útil, su persistencia en el medio ambiente plantea serias preocupaciones. Según el portal digital Science "mostró que los microplásticos de espuma floral también filtran sustancias químicas en el agua circundante" (Universidad RIMT, 2019), contribuyendo así a la contaminación ambiental y al deterioro de la salud. Esta realidad nos obliga a reflexionar sobre la necesidad de buscar alternativas más sostenibles en la elaboración de arreglos florales. En este contexto, surge la necesidad de realizar investigaciones y experimentos que aborden esta problemática de manera proactiva y creativa. El presente estudio experimental propone explorar diversas alternativas al uso de poliuretano en arreglos florales, con el objetivo de encontrar opciones más amigables con el medio ambiente sin sacrificar la estética y la durabilidad de los arreglos.
+
+
+\newpage
+\section{Plantamiento del problema}
+
+El problema que se enfrenta es la necesidad de encontrar soluciones más amigables con el medio ambiente para reemplazar el poliuretano en la creación de arreglos florales. A pesar de su eficacia en la estabilización de las flores, el poliuretano tiene un impacto ambiental significativo debido a su descomposición en microplásticos, lo que contribuye a la acumulación de desechos plásticos y la contaminación ambiental.
+
+El desafío radica en la escasez de alternativas viables al poliuretano que sean aceptadas ampliamente en el mercado de los arreglos florales. Aunque existen algunos materiales sustitutos disponibles, no siempre ofrecen la misma estabilidad, durabilidad y funcionalidad que el poliuretano, lo que dificulta su adopción. Además, la falta de conciencia y conocimiento sobre estas alternativas limita su uso por parte de diseñadores florales, floricultores y consumidores. Por tanto, es necesario investigar y desarrollar nuevas soluciones que permitan mantener la calidad y la estética de los arreglos florales, pero con un menor impacto ambiental. Este estudio se enfoca en explorar y evaluar diversas alternativas al poliuretano, con el fin de identificar opciones más sostenibles y responsables que puedan ser adoptadas por la industria floral y los consumidores preocupados por el medio ambiente.
+
+Para lograr este objetivo, se llevarán a cabo una serie de experimentos diseñados para evaluar el desempeño de diferentes materiales. Se analizarán los aspectos funcionales, teniendo en cuenta la durabilidad en distintos entornos ambientales, es decir, se probarán tanto a la luz del sol como a la sombra, para identificar si hay una afectación considerable por este factor. Además, se considerará el impacto ambiental de cada alternativa, prestando especial atención a su biodegradabilidad, facilidad de uso, costo y su potencial para reducir la huella ecológica de los arreglos florales.
+
+ \vspace*{0.4cm}
+ \subsection{Objetivos}
+ \vspace*{0.4cm}
+
+\subsubsection{Objetivo general}
+
+- Evaluar el desempeño funcional de alternativas al poliuretano en la creación de arreglos florales, considerando aspectos como la durabilidad y conservación de la flor en distintos contextos ambientales.
+
+ \vspace*{0.4cm}
+\subsubsection{Objetivos específicos}
+
+\begin{itemize}
+    \item Determinar la biodegradabilidad y el impacto ambiental de los materiales probados en comparación con el poliuretano, con el fin de identificar opciones más sostenibles para la elaboración de arreglos florales.
+    \item Proponer recomendaciones prácticas para diseñadores florales, floricultores y consumidores sobre la selección y uso de materiales más sostenibles en la creación de arreglos florales, con el objetivo de promover prácticas más responsables y respetuosas con el medio ambiente.
+    \item Tener en cuenta el costo de cada una de las opciones a considerar para ofrecer una alternativa que no solo brinde un menor impacto ambiental, sino también un costo similar o menor, ya que una de las facilidades que brinda el poliuretano, es su bajo costo.
+\end{itemize}
+
+ \vspace*{0.4cm}
+ \subsection{Factores y niveles}
+ \vspace*{0.4cm}
+
+\subsubsection{Factores}
+
+Los factores que se consideran importantes para mantener a las flores son el soporte y el lugar.
+
+\vspace*{0.4cm}
+\subsubsection{Niveles}
+
+Para el factor $lugar$, se usarán 2 niveles, interior y exterior. Para el nivel interior se pondrán las flores en un lugar sin luz del sol directa. Para el nivel exterior, se pondrán las flores con luz del sol de manera directa, aunque sólo sea por un periodo de tiempo, esto debido a que si la flor se pone todo el día a la luz del sol de forma directa podría acelerar su descomposición de manera considerable.
+
+Para el factor $soporte$, se tendrán en cuenta 3 niveles sin ningún aditivo adicional, espuma de poliuretano (oasis), agua de la canilla y tierra de capote. Estos 3 tipos de soporte se pondrán dentro de un recipiente el cual le pondremos la misma cantidad de agua de manera constante, es decir, el riego se hará de manera controlada.
+
+
+ \vspace*{0.4cm}
+ \subsection{Variable respuesta}
+ \vspace*{0.4cm}
+
+La variable de respuesta que se medirá en el estudio será el tiempo hasta que la flor se marchite. Según una experta en flores consultada, las flores se consideran marchitas cuando sus hojas muestran signos de estar amarillas, arrugadas, caídas y/o desechas. Dado que las flores son utilizadas principalmente para decoración, el aspecto estético juega un papel crucial. El conteo del tiempo comenzará desde el día en que la flor sea colocada en su respectivo soporte y ubicación, y continuará hasta el día en que se observe algún síntoma de marchitez, momento en el cual se detendrá la medición del tiempo. Este tiempo será registrado en días y hora, la hora estará representada por el porcentaje de avance del día.
+
+\vspace*{0.4cm}
+ \subsection{Unidad experimental}
+ \vspace*{0.4cm}
+
+ La unidad experimental será la flor, especificamente una margarita.
+
+\newpage
+\section{Descripción detallada del diseño experimental}
+
+Este diseño experimental adoptará un enfoque de dos factores, con el objetivo de identificar un tratamiento que maximice la longevidad de las flores en comparación con la espuma de poliuretano, conocida comercialmente como oasis, que servirá de control.
+
+Para aleatorizar las unidades experimentales, se enumerarán las seis combinaciones posibles de los factores. Posteriormente, se utilizará la función \(sample()\), de R, para aleatorizar las combinaciones sin un orden específico. Una vez aleatorizadas, se seleccionará una flor del ramo adquirido en la floristería y se asignará al tratamiento correspondiente al primer número generado por la función \(sample()\). Este proceso se repetirá secuencialmente con cada flor hasta completar todas las asignaciones.
+
+Se trabajará con un nivel de significancia de $\alpha=0.05$.
+
+\subsection{Número de réplicas}
+
+Se realizará unicamente dos (2) réplicas, esta decisión de realizar únicamente dos réplicas en nuestro diseño experimental se fundamenta en diversas consideraciones de carácter práctico y metodológico. 
+
+En primer lugar, el costo de las flores y el presupuesto asignado al proyecto jugaron un papel crucial. Las flores, especialmente en temporada alta como el día de las Madres, presentan un incremento significativo en su precio. Este factor limitó la cantidad de réplicas que pudimos realizar, ajustándonos a los recursos económicos disponibles sin comprometer otros aspectos esenciales del experimento.
+
+En segundo lugar, el tiempo disponible para la ejecución del experimento fue otro factor determinante. La logística necesaria para llevar a cabo cada réplica demanda una considerable inversión de tiempo, desde la obtención y preparación de las flores hasta la recolección y análisis de los datos. Reducir el número de réplicas permitió gestionar de manera eficiente el tiempo disponible, asegurando que cada etapa del experimento se realizara con la rigurosidad necesaria.
+
+Adicionalmente, para garantizar la homogeneidad de las flores utilizadas, se optó por obtenerlas todas de un mismo cultivo. Esta decisión tuvo como objetivo evitar variaciones que pudieran surgir al adquirir flores de diferentes invernaderos, una consideración particularmente importante en una temporada alta. Gracias a la colaboración de la señora Teresa de la floristería, se logró esta uniformidad en las flores, mitigando así posibles sesgos en los resultados debido a diferencias en las condiciones de cultivo.
+
+En conclusión, las limitaciones presupuestarias, las restricciones de tiempo y la necesidad de mantener la homogeneidad de las flores justificaron plenamente la decisión de realizar solo dos réplicas en nuestro diseño experimental. Estos factores fueron gestionados cuidadosamente para asegurar la validez y la fiabilidad de los resultados obtenidos.
+\subsection{Orden de corrida}
+
+Se genera el orden de las corridas dos replicas diferentes utilizando una semilla para asegurar la reproducibilidad de los resultados. A continuación, se describe el procedimiento utilizado y los codigos asignados a cada condición.
+
+Para la primera réplica, se utilizó la semilla 1. Esto garantiza que la selección de los elementos sea consistente cada vez que se ejecute el procedimiento. La muestra seleccionada para esta réplica incluye las siguentes combinaciones de condiciones.
+
+```{r}
+set.seed(1) # Semilla
+sample(c("it","io","ia","et","eo","ea"), 6)
+```
+\newpage
+Para la segunda réplica, se utilizó la semilla 2. Al igual que en la primera réplica, esto asegura la consistencia en la selección de los elementos. La muestra seleccionada para esta réplica incluye las mismas combinaciones de condiciones, pero en un orden diferente.
+
+```{r}
+set.seed(2) # Semilla
+sample(c("it","io","ia","et","eo","ea"), 6)
+```
+
+Cada uno de los codigos representa una combinación específica de condiciones ambientales, tal como se detalla acontinuación:
+
+\begin{itemize}
+\item{\textbf{it:}} Interior tierra.
+\item{\textbf{io:}} Interior oasis.
+\item{\textbf{ia:}} Interior agua.
+\item{\textbf{et:}} Exterior tierra.
+\item{\textbf{eo:}} Exterior oasis.
+\item{\textbf{ea:}} Exterior agua.
+\end{itemize}
+
+\begin{table}[h]
+\centering
+\caption{Tabla de resultados}
+\begin{tabular}{l|l|l|}
+\cline{2-3}
+                             & Interior  & Exterior   \\ \hline
+\multicolumn{1}{|l|}{Agua}   & 18.91(3)  & 8.38(4)    \\ \hline
+\multicolumn{1}{|l|}{}       & 18.91(12) & 8.38(9)    \\ \hline
+\multicolumn{1}{|l|}{Tierra} & 6.40 (1)  & 9.42 (2)   \\ \hline
+\multicolumn{1}{|l|}{}       & 9.42 (8)  & 10.75 (10) \\ \hline
+\multicolumn{1}{|l|}{Oasis}  & 9.42 (5)  & 12.50 (6)  \\ \hline
+\multicolumn{1}{|l|}{}       & 9.42 (11) & 10.75 (7)  \\ \hline
+\end{tabular}
+\end{table}
+
+Para obtener una estimación más precisa sobre la duración de la flor durante el día, se realizaron registros según el porcentaje de avance del día. Este enfoque permite una evaluación detallada de cómo varia la duración de la flor en diferentes momentos a lo largo del día.
+\newpage
+\section{Resultados de análisis}
+```{r}
+# Leemos los datos:
+
+rm(list=ls())
+
+bd <- data.frame(corrida = c(1,5,3,2,6,4,8,11,12,10,7,9),
+                 lugar = as.factor(c(rep(c(rep("adentro",3), rep("afuera",3)),2))),
+                 soporte = as.factor(c(rep(c("tierra","oasis","agua"),2))),
+                 dias = 
+                   c(6.40,9.42,18.91,9.42,12.5,8.38,9.42,9.42,18.91,10.75,10.75,8.38))
+
+#bd <- arrange(base, corrida)
+```
+Una vez desarrollado el experimento procedemos a concluir en base a los datos arrojados, para ello, comenzaremos con un análisis descriptivo de los datos, ayudandonos de los gráficos proporcionados en clase, así:
+
+
+\subsubsection{Gráfico de cajas}
+
+```{r fig.cap='Gráfico de cajas con respecto a los días'}
+boxplot(bd$dias, col = 'skyblue4', main = 'Gráfico de cajas con respecto a los días', ylab = 'Días', xlab = 'Valores')
+```
+
+```{r}
+bd$dias%>% summary()
+```
+se puede observar que en general, sin considerar el soporte, ni el lugar,  Se observa que en promedio los valores se registran entre 9 y 12 días, teniendo un valor atípico cercano a 19 días. Tenemos una media de 11 días y un valor mínimo de 6.4 días, que para usos prácticos, se considerará como seis.
+
+\subsection{Significancia del modelo}
+```{r include = F}
+m_p_1 <- aov(dias ~ lugar*soporte, data = bd)
+m_p_1 %>% summary()
+```
+
+\begin{table}[H]
+\centering
+\caption{Tabla Anova}
+\begin{tabular}{llllll}
+ & G. L & Suma de cuadrados & Cuadrado medio & F & Valor - P \\ \cline{2-6} 
+Lugar & 1 & 12.61 & 12.61 & 10.84 & 0.016552 \\ \hline
+Soporte & 2 & 44.9 & 22.45 & 19.31 & 0.002432 \\ \hline
+Lugar:Soporte & 2 & 107.87 & 53.93 & 46.39 & 0.000224 \\ \hline
+Residuales & 6 & 6.98 & 1.16 &  &  \\ \hline
+\end{tabular}
+\end{table}
+
+Se observa que tanto los factores como la interacción son significativos, por ende, no se puede reducir el modelo y lo debemos conservar como se pensó inicialmente, posterior a esto se van a validar los supuestos.
+\section{Validación de los supuestos}
+\subsection{Normalidad}
+
+Planteamos la prueba de hipótesis:
+
+$$
+\begin{cases}
+  H_0:\epsilon_i \ se \ distribuyen \ normal \\
+  H_1:\epsilon_i \ NO \ se \ distribuyen \ normal
+\end{cases}
+$$
+
+```{r}
+shapiro.test(residuals(m_p_1))
+```
+Se observa que según el test de Shapiro-Wilk, el valor P es de 0.38, lo que hace que no tengamos argumentos suficientes para rechazar la hipótesis nula, concluyendo así que los errores se distribuyen normal.
+\newpage
+\subsection{Independencia}
+
+Prueba gráfica:
+
+```{r fig.cap="Prueba grafica", out.width="70%"}
+plot(x=bd$corrida, y=residuals(m_p_1),main = "Prueba gráfica de independencia",
+     xlab = "Orden de recolección",ylab = "Residuales")
+abline(h=0, lty=2)
+```
+
+Los residuos no muestran ningún patrón discernible en relación con el orden de recolección de los datos, lo que sugiere independencia. Ahora, procederemos a verificar esta independencia utilizando prueba de Durbin Watson por lo que planteamos el siguiente par de hipótesis:
+
+$$
+\begin{cases}
+  H_0:\rho = 0 \\
+  H_1:\rho \neq 0 
+\end{cases}
+$$
+```{r}
+dwtest(dias ~ lugar*soporte, order.by = bd$corrida, data = bd)
+```
+
+Notemos que el valor p es de 0.441, lo que hace que no tengamos argumentos suficientes para descartar la hipótesis nula, así se puede decir que los errores tienen correlación cero.
+
+\subsection{Homogeneidad de varianza}
+
+```{r fig.cap="Residuales vs Valores ajustados", out.width="65%"}
+plot(fitted(m_p_1),residuals(m_p_1),main = "Residuales vs Valores ajustados",ylab = "Residuales",xlab = "Valores ajustados")
+abline(h=0, lty=2, col="green4")
+```
+Se puede observar que no hay un patrón rectangular en los datos, por ende, se puede suponer que no hay homogeneidad de varianza en los residuales.
+
+Planteamos la prueba de hipótesis:
+
+$$
+\begin{cases}
+  H_0:V(\varepsilon_{ij}) = \sigma^2  \\
+  H_1:V(\varepsilon_{ij}) \ no \ es \ constante
+\end{cases}
+$$
+\textbf{Test de Bartlett}
+```{r echo=TRUE}
+bartlett.test(bd$dias ~ bd$lugar)
+bartlett.test(bd$dias ~ bd$soporte)
+```
+
+Se observa que los errores tanto de el factor lugar, como el de el factor soporte, no tienen una varianza constante, debido a esto procederemos a hacer una trasformación a los datos y ver si cumplen con los supuestos.
+
+\newpage
+\subsection{Transformación aplicada a los datos}
+
+Al evidenciar que uno de los supuestos no se cumplia, se decidió transformar los datos mediante el método logaritmo natural en la variable respuesta días, una vez hecho esto, se procederá a evaluar las distintas pruebas para verificar si cumple todos los supuestos.
+
+\subsubsection{Transformación: Logaritmo Natural}
+
+```{r echo=TRUE}
+# Creamos una nueva columna con los datos transformados.
+bd$t_ln <- log(bd$dias)
+```
+
+\subsubsection{Significancia del modelo transformado}
+
+Se hará la validación de la significancia del modelo, para ello usaremos la tabla ANOVA:
+
+```{r include=FALSE}
+anova_t_ln <- bd %>% aov(t_ln ~ lugar*soporte, data =.)
+anova_t_ln %>% summary()
+```
+
+\begin{table}[H]
+\centering
+\caption{Tabla ANOVA modelo transformado}
+\begin{tabular}{llllll}
+\cline{2-6}
+ & G. L & Suma de cuadrados & Cuadrado medio & F & Valor - P \\ \cline{2-6} 
+Lugar & \multicolumn{1}{l|}{1} & 0.0401 & 0.0401 & 2.541 & 0.1620 \\ \hline
+Soporte & 2 & 0.2502 & 0.1251 & 7.919 & 0.0207 \\ \hline
+Lugar:Soporte & 2 & 0.7325 & 0.3662 & 23.180 & 0.0015 \\ \hline
+Residuales & 6 & 0.0948 & 0.0158 &  &  \\ \hline
+\end{tabular}
+\end{table}
+
+Notese que a diferencia del primer modelo, el factor lugar no es significativo, sin embargo, tanto el factor soporte, como la interacción entre los dos factores es significativa, por ello, no reduciremos el modelo y quedará con los factores planteados inicialmente. Estas conclusiones son basadas en el valor P de los factores y la interacción.
+
+\subsubsection{Normalidad modelo transformado}
+
+Planteamos la hipótesis para probar la normalidad del modelo:
+
+$$
+\begin{cases}
+  H_0:\epsilon_i \ se \ distribuyen \ normal \\
+  H_1:\epsilon_i \ NO \ se \ distribuyen \ normal
+\end{cases}
+$$
+
+```{r fig.cap='Grafico de residuales'}
+shapiro.test(residuals(anova_t_ln))
+```
+
+Como el valor P es mayor a 0.05, se concluye que no hay argumentos suficientes para rechazar la hipótesis nula, por ende se concluye con los errores de los datos se distribuyen normal.
+
+\newpage
+\subsubsection{Independencia}
+
+Prueba gráfica:
+
+```{r fig.cap="Prueba grafica"}
+plot(x=bd$corrida, y=residuals(anova_t_ln),main = "Prueba gráfica",
+     xlab = "Orden de recolección",ylab = "Residuales")
+abline(h=0, lty=2)
+```
+
+Los residuos no muestran ningún patrón discernible en relación con el orden de recolección de los datos, lo que sugiere independencia. Ahora, procederemos a verificar esta independencia utilizando prueba de Durbin Watson por lo que planteamos el siguiente par de hipótesis:
+
+$$
+\begin{cases}
+  H_0:\rho = 0 \\
+  H_1:\rho \neq 0 
+\end{cases}
+$$
+
+\textbf{Teniendo en cuenta el orden}
+
+```{r}
+dwtest(anova_t_ln, order.by = bd$corrida, data = bd)
+```
+
+Se observa que, teniendo en cuenta el orden de registro de lo datos, se puede concluir que los residuales son independientes, ya que el valor p es mayor a 0.05, haciendo que no podamos rechazar la hipótesis nula.
+
+\subsubsection{Homogeneidad de varianzas}
+
+```{r fig.cap="Residuales vs Valores ajustados", out.width="65%"}
+plot(fitted(anova_t_ln),residuals(anova_t_ln),main = "Residuales vs Valores ajustados",ylab = "Residuales",xlab = "Valores ajustados")
+abline(h=0, lty=2, col="green4")
+```
+De la gráfica, se puede observar que el patrón formado por la nube de puntos no se aleja mucho de un patrón rectangular. Sin embargo, para validar este supuesto numéricamente, procederemos a realizar las pruebas.
+
+Para comprobar la homogeneidad de varianza, la cual nos dió problemas anteriormente, plantearemos la prueba de hipótesis y haremos nuevamente el Test de Barlett, ya que los datos cumplen con el supuesto de normalidad, así:
+
+$$
+\begin{cases}
+  H_0:V(\varepsilon_{ij}) = \sigma^2  \\
+  H_1:V(\varepsilon_{ij}) \ no \ es \ constante
+\end{cases}
+$$
+
+\textbf{Test de Bartlett}
+```{r echo=TRUE}
+bartlett.test(bd$t_ln ~ bd$lugar)
+bartlett.test(bd$t_ln ~ bd$soporte)
+```
+
+Se observa que en el factor lugar, contamos con un valor P que se puede considerar como valor frontera, en este caso, a pesar de estar por debajo del nivel de significancia, por motivos prácticos aceptaremos la hipótesis nula, considerando que los residuales del factor lugar, cumplen con el supuesto de homogeneidad de varianza.
+
+Además, se puede notar que el factor soporte, cuenta con un valor p mayor a 0.05, por ello aceptamos la hipótesis nula y se concluye que los residuales del factor soporte, cumplen el supuesto de homogeneidad de varianza.
+\newpage
+\section{Modelo final}
+
+\begin{table}[H]
+\centering
+\caption{Tabla ANOVA modelo final}
+\begin{tabular}{llllll}
+\cline{2-6}
+ & G. L & Suma de cuadrados & Cuadrado medio & F & Valor - P \\ \cline{2-6} 
+Lugar & \multicolumn{1}{l|}{1} & 0.0401 & 0.0401 & 2.541 & 0.1620 \\ \hline
+Soporte & 2 & 0.2502 & 0.1251 & 7.919 & 0.0207 \\ \hline
+Lugar:Soporte & 2 & 0.7325 & 0.3662 & 23.180 & 0.0015 \\ \hline
+Residuales & 6 & 0.0948 & 0.0158 &  &  \\ \hline
+\end{tabular}
+\end{table}
+
+El modelo final ofrece una representación teórica precisa de la relación entre las variables estudiadas y proporciona una herramienta valiosa para la predicción y análisis dentro del contexto de investigación. Además cumple con los supuestos considerados inicialmente dandonos una base solida y confiable para tomarlo en cuenta en estudios futuros.
+
+\subsection{Distintos gráficos}
+
+\subsubsection{Gráfico de efectos}
+
+```{r}
+plot.design(dias ~ lugar*soporte, data=bd,
+        main="Gráfico de efectos", las=1, xlab = "Factores", ylab="Dias")
+```
+
+En el gráfico de efectos, se puede notar que en los niveles del factor lugar hay una diferencia que parece significativa entre adentro y afuera, según esto Se observa que adentro las flores tienden a durar más que afuera. También en el factor soporte, Se observa que en agua es donde se registró la mayor duración y en tierra donde se registró la menor.
+
+\subsubsection{Gráfico de interacción}
+
+```{r, fig.cap="Gráfico de Interacción", out.width="70%"}
+with(bd, interaction.plot(lugar, soporte, dias,
+                          type="b",pch=19,fixed = TRUE, 
+                          xlab = "Lugar", ylab = "Dias", main="Gráfico de interacción",
+                          las=1,col = c("blue","green","brown")))
+```
+
+Acá se puede confirmar lo mencionado anteriormente y además Se observa que en el interior, con un soporte de agua, las flores en promedio registran una mayor duración, mientras que tierra registra en promedio la menor duración. Afuera, Se observa que el oasis registra en promedio la mayor duración, mientras que el agua registra la menor.
+
+```{r, fig.cap="Gráfico de Interacción", out.width="70%"}
+with(bd, interaction.plot(soporte, lugar, dias,
+                          type="b",pch=19,fixed = TRUE, 
+                          xlab = "Soporte", ylab = "Dias", main="Gráfico de interacción",
+                          las=1,col = c("black","skyblue3")))
+```
+
+Nuevamente confirmamos lo dicho anteriormente.
+\newpage
+\section{Conclusiones}
+
+El proceso de marchitamiento de las flores de margarita es muy heterogéneo, tanto en exposiciones interiores como exteriores, y varía según los diferentes soportes utilizados: tierra, oasis o agua. El factor agua es el que mejor conserva la flor, seguido por el oasis y, por último, la tierra. En el exterior, la flor sufre considerablemente debido a factores climáticos como el sol intenso y las lluvias intensas, lo que provoca un proceso de deterioro más acelerado. Por lo tanto, se recomienda buscar un equilibrio óptimo en exteriores, donde haya una exposición balanceada al sol y a la lluvia, para prolongar la vida de las margaritas.
+
+Para concluir el agua es la mejor alternativa a los oasis para mantener la frescura de las flores en arreglos florales, especialmente en interiores. Aunque el oasis es útil, su impacto ambiental es significativo debido a la contaminación por microplásticos.
+
+Los resultados del experimento indican que:
+
+\begin{itemize}
+\item{\textbf{Interior vs. Exterior:}} Las flores duraron más tiempo en interiores que en exteriores.
+\item{\textbf{Soporte:}}Entre los soportes evaluados (agua, oasis y tierra), el agua resultó ser el soporte más efectivo para prolongar la vida de las flores en interiores, mientras que en exteriores, el oasis fue ligeramente mejor.
+\end{itemize}
+
+Por lo tanto, se recomienda a los diseñadores florales y consumidores utilizar agua en lugar del oasis, especialmente en ambientes interiores, para minimizar el impacto ambiental sin comprometer la durabilidad y estética de los arreglos florales.
+
+\newpage
+
+\section{Evidencias}
+\url{https://www.canva.com/design/DAGGGzg9u6c/tlnA2M3B3WiWuvgEG3_Sog/edit}
+
+\url{https://www.canva.com/design/DAGHmIGh1OE/kYUhub48a6O670z-In1XFw/edit}
+\newpage
+\section{Bibliografía}
+
+\url{https://www.terra.org/categorias/articulos/despedir-con-flores-ecologicas#:~:text=Las%20florister%C3%ADas%20usan%20la%20espuma,se%20reconocen%20como%20potencialmente%20cancer%C3%ADgenos.}
+
+\url{https://www.science-things.com/releases/2019/12/191210111651.htm}
+
+\url{https://be.green/es/blog/porque-mis-plantas-estan-decaidas#:~:text=Una%20planta%20que%20se%20est%C3%A1,sobre%20si%20mismas%20y%20caen.}
