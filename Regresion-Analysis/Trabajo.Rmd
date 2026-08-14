@@ -1,0 +1,303 @@
+---
+header-includes:
+- \usepackage[utf8]{inputenc}
+- \setlength{\parindent}{0cm}
+- \usepackage{amsmath}
+- \usepackage{array}
+- \usepackage{float}
+- \usepackage{multirow}
+- \usepackage[spanish, es-tabla]{babel}\decimalpoint
+output:
+  pdf_document:
+    number_sections: yes
+fontsize: 10pt
+papersize: letter
+geometry: margin = 1in
+language: es
+editor_options:
+  markdown:
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F, fig.align = "center", fig.pos = "H")
+library(kableExtra)
+library(knitr)
+library(leaps)
+source("Functions.R")
+library("tidyverse")
+library("MASS")
+```
+
+```{=tex}
+\input{titlepage}
+\thispagestyle{empty}
+\tableofcontents
+\newpage
+\thispagestyle{empty}
+\listoffigures
+\listoftables
+\newpage
+```
+
+```{=tex}
+\pagestyle{myheadings}
+\setcounter{page}{3}
+```
+
+\section{Pregunta 1}
+
+Teniendo en cuenta la base de datos asignada, la cual es
+\textbf{Equipo33.txt}, las covariables son: conteo de celulas rojas
+(RCC), Conteo de celulas blancas (WCC), Hematocritos (Hc), Masa corporal
+libre de grasa (LBM), Esstatura en cms (Ht), Peso en kgs(Wt), El modelo
+que se propone es:
+
+$$
+X.Bfat_i= \beta_0 +  \beta_1RCC+\beta_2WCC+\beta_3Hc+\beta_4LBM + \beta_5Ht+\beta_6Wt + \varepsilon_i, \ \ \varepsilon_i \stackrel{\text{iid}}{\sim} \mathcal{N} (0, \sigma^2)
+$$
+
+```{r}
+datos <- read.table("Equipo33.txt", header=T)
+modelo <- lm(X.Bfat ~ ., data= datos)
+betas <- round(coef(modelo), 4)
+betas1 <- as.data.frame(betas)
+```
+
+\subsection{Modelo de regresión}
+
+Al ajustar el modelo de regresión, se obtienen los siguientes coeficientes:
+
+```{r}
+rownames(betas1) <- c("$\\hat{\\beta_0}$", "$\\hat{\\beta_1}$", "$\\hat{\\beta_2}$", "$\\hat{\\beta_3}$", "$\\hat{\\beta_4}$", "$\\hat{\\beta_5}$", "$\\hat{\\beta_6}$")
+betas1 %>% 
+  kable(col.names = c("Valor del parámetro"), caption = "Tabla de valores de los coeficientes estimados", escape=F, booktab=T, align="c", row.names=T) %>%
+  kable_styling(latex_options=c("HOLD_position"))
+```
+
+Por lo tanto, el modelo de regresión ajustado es: $$
+\widehat{X.Bfat}_i= `r betas[1]` + `r betas[2]`  RCC_i+`r betas[3]` WCC_i+`r betas[4]`Hc_i+`r betas[5]`LBM_i + `r betas[6]`Ht_i+`r betas[7]`Wt_i
+$$ Donde $1\leq i\leq `r nrow(datos)`$
+
+\subsection{Significancia de la regresión}
+
+Para la significancia de la regresión se hará uso de la siguiente tabla
+anova:
+
+```{r}
+tabla.anova <- myAnova(modelo)
+rownames(tabla.anova) <- c("Modelo de regresión", "Error")
+tabla.anova %>%
+  kable(col.names=c("Sumas de cuadrados", "g.l", "Cuadrado medio", "$F_0$", "Valor-P"), caption = "Tabla anova significancia de la regresión", escape=F, booktab=T, align="c", row.names=T) %>%
+  kable_styling(latex_options = c("HOLD_position"))
+```
+
+Como el $Valor P < 0.05 = \alpha$ se rechaza la hipotesis nula
+concluyendo que el modelo de RLM propuesto es significativo, por
+consiguiente el porcentaje de grasa corporal depende significativamente
+de al menos una de las variables preductoras del modelo.
+
+\subsection{Significancia de los parámetros}
+
+En el siguiente cuadro se presenta información de los parámetros con la
+cual se va a estimar si los parametros son significativos en el modelo o
+no:
+
+```{r}
+tabla.coef <- summary(modelo)$coefficients
+rownames(tabla.coef) <- paste("$\\beta_", 0:6, "$", sep="")
+tabla.coef %>%
+  kable(col.names=c("Estimación $\\beta_j$", "$se(\\hat{\\beta_j})$", "$T_{0j}$", "Valor-P"), caption="Resumen de los coeficientes", escape=F, booktab=T, row.names = T, align = "c", digits = 4) %>%
+  kable_styling(latex_options = c("HOLD_position"))
+```
+
+los valores P permiten concluir con una significancia $\alpha=0.05$ que
+$\hat{\beta_4}$, $\hat{\beta_5}$ y $\hat{\beta_6}$ son significativos en
+el modelo y que $\hat{\beta_1}$, $\hat{\beta_2}$ y $\hat{\beta_3}$ son
+individualmente no significativos en presencia de los demás parámetros.
+
+\subsection{Interpretación de los parámetros}
+
+```{=tex}
+\begin{itemize}
+  \item $\hat{\beta_4}$: Masa corporal libre de grasa $\hat{\beta_4} = -1.3539$ indica que por cada unidad que aumente la masa corporal libre de grasa, el promedio de porcentaje de grasa corporal va a disminuir en 1.3539 unidades.
+  \item $\hat{\beta_5}$: Estatura en cm $\hat{\beta_5} = 0.0384$ indica que por cada unidad que aumente la estatura(cm), el promedio de porcentaje de grasa corporal va a aumentar en 0.0384 unidades.
+  \item $\hat{\beta_6}$: Peso en cm $\hat{\beta_6} = 1.1371$ indica que por cada unidad que aumente el peso(kg), el promedio de porcentaje de grasa corporal va a aumentar en 1.1371 unidades.
+\end{itemize}
+```
+\subsection{Coeficiente de determinación múltiple $R^2$}
+
+El modelo tiene un $R^2 = 0.9828$ lo cual significa que aproximadamente
+el $98.28\%$ de la variabilidad es explicado por el modelo sin embargo
+el $R^2_{adj} = 0.9813$ se puede ver como el $R^2_{adj} < R^2$ lo que
+indica que el en el modelo pueden haber variables que no aporten
+significativamente.
+
+\section {Pregunta 2}
+\subsection {Planteamiento prueba de hipotesis y modelo reducido}
+
+Los parametros cuyos valores P fueron los mas altos corresponden a $\beta_1, \beta_2, \beta_3$. Por tanto, se plantea la siguiente prueba de hipótesis:
+$$
+\begin{cases}
+\begin{aligned}
+\text{H}_0&: \beta_1=\beta_2=\beta_3=0 \\
+\text{H}_1&: \text{Algún }\beta_j \text{ distinto de 0 para } j=1, 2, 3
+\end{aligned}
+\end{cases}
+$$
+
+El modelo completo  es el definido en la seccion 1.1 y el modelo reducido es: 
+\begin{equation*}
+\text{MR: }X.Bfat_i=\beta_0+\beta_4LBM+\beta_5Ht+\beta_6Wt+\varepsilon_i, \ \ \varepsilon_i \stackrel{\text{iid}}{\sim} \mathcal{N} (0, \sigma^2)
+\end{equation*}
+Se presenta la siguiente tabla con el resumen de todas las regresiones para plantear el estadistico de prueba:
+```{r}
+todas.regresiones <- myAllRegTable(modelo)
+todas.regresiones <- todas.regresiones[c(63, 22), c(4, 6)]
+row.names(todas.regresiones) <- c("Modelo completo", "Modelo reducido")
+todas.regresiones %>% 
+  kable(col.names = c("$SSE$", "Covariables en el modelo"), caption ="Resumen de todas las regresiones", escape = F, booktab=T, align="c", row.names = T, digits=4) %>% 
+  kable_styling(latex_options = c("HOLD_position"))
+```
+
+\subsection{Estadistico de prueba y conclusiones}
+Se construye el estadistico de prueba como:
+\begin{align*}
+F_0&=\frac{(SSE(\beta_0, \beta_4, \beta_5, \beta_6)-SSE(\beta_0, \beta_1, \cdots, \beta_6))/3}{MSE(\beta_0, \beta_1, \cdots, \beta_6)} \stackrel{H_0}{\sim} f_{3, `r nrow(datos)-7`} \\
+&= \frac{(39.990-38.734)/3}{38.734/`r nrow(datos)-7`} = 0.735
+\end{align*}
+Ahora, comparando a un nivel de significancia $F_0$ con $f_{3,68}=`r qf(0.05, 3, 68, lower.tail=F)`$
+
+Viendo el resultado anterior se concluye que las variables $\beta_0, \beta_4, \beta_5, \beta_6$ se pueden retirar del modelo. 
+
+\section{Pregunta 3}
+
+\subsection{Prueba de Hipótesis y Prueba de Hipótesis Matricial}
+
+Se quiere saber si el efecto de WCC es igual a la resta del efecto de Hc y RCC; además de analizar si LBM y Wt tienen el mismo efecto en el análisis actual. Para ello se plantea la siguiente prueba de hipótesis:
+$$
+\begin{cases}
+\begin{aligned}
+\text{H}_0&:\beta_2=\beta_3-\beta_1,  \beta_4=\beta_6 \\
+\text{H}_a&:\text{Alguna desigualdad no se cumple.}
+\end{aligned}
+\end{cases}
+$$
+
+Reescribiendo matricialmente se obtiene:
+$$
+\begin{cases}
+\begin{aligned}
+\text{H}_0&:\mathbf{L}\underline{\beta}=0 \\
+\text{H}_a&:\mathbf{L}\underline{\beta}\neq 0
+\end{aligned}
+\end{cases}
+$$
+Donde $\mathbf{L}$ esta dada por:
+$$
+\mathbf{L}=\begin{bmatrix}
+  0 & 1 & 1 & -1 & 0 & 0 & 0 \\
+  0 & 0 & 0 & 0 & 1 & 0 & -1
+\end{bmatrix}
+$$
+Por lo anterior, el modelo reducido se puede expresar como:
+$$
+X.Bfat_i= \beta_0 + \beta_1RCC+(\beta_3 - \beta_1)WCC+\beta_3Hc+\beta_4LBM + \beta_5Ht+(\beta_4)Wt + \varepsilon_i, \ \ \varepsilon_i\stackrel{\text{iid}}{\sim} \mathcal{N} (0, \sigma^2)
+$$
+$$
+= \beta_0 + \beta_1(RCC-WCC)+\beta_3(WCC+ Hc)+\beta_4(LBM+Wt) + \beta_5Ht + \varepsilon_i, \ \ \varepsilon_i\stackrel{\text{iid}}{\sim} \mathcal{N} (0, \sigma^2)
+$$
+$$
+= \beta_0 + \beta_1(RCC^*)+\beta_3(WCC^*)+\beta_4(LBM^*) + \beta_5Ht + \varepsilon_i, \ \ \varepsilon_i\stackrel{\text{iid}}{\sim} \mathcal{N} (0, \sigma^2)
+$$
+
+\subsection{Estadístico de Prueba}
+
+El estadístico de prueba $F_0$ esta dado por:
+\begin{equation}
+F_0 = \frac{(SSE(MR)- SSE(MF))/2}{MSE(MF)} \stackrel{H_0}{\sim} f_{2, `r nrow(datos)-7`}
+\end{equation}
+
+\section{Pregunta 4}
+
+\subsection{Supuestos del modelo}
+
+\subsubsection{Normalidad de los residuales}
+
+Para la validación de este supuesto, se plantea la sigui prueba de hipotesis Shpiro wilk, acompañado de un grafico cuantil-cuantil:
+
+Se plantea la siguiente prueba de hipotesis:
+$$
+\begin{cases}
+\begin{aligned}
+\text{H}_0:\space \varepsilon_i\space	\sim N(0,\sigma^2) \\
+\text{H}_1:\space \varepsilon_i\space	\nsim N(0,\sigma^2)
+\end{aligned}
+\end{cases}
+$$
+```{r, echo=FALSE, fig.align = "center", fig.height = 6, fig.width = 8, out.width = "60%"}
+test=shapiro.test(rstudent(modelo)) #Test de normalidad sobre residuales estudentizados
+qqnorm(rstudent(modelo),cex=2)
+qqline(rstudent(modelo),col=4)
+legend("topleft",legend=rbind(c("Estadistico W","P value"),round(c(test$statistic,test$p.value),digits=5)),cex=1.2)
+```
+
+Dado el gráfico qqnorm y la prueba de Shaphiro Wilk con el juego de hipótesis ya nombrado, se observa que el valor p es de 0.000554 (grande) por tanto se rechaza la hipótesis nula y se concluye que los residuales NO distribuyen normal estándar. 
+
+Note que hay un buen ajuste de los datos a exepción de los primeros 6 puntos iniciales. Es probable que estos datos son los que estan afectando la normalidad en gran medida. Ahora, en términos prácticos, la desviación no parece muy fuerte. A pesar de que el supuesto no se cumple se ha de mencionar que la desviación de la normalidad no es tan grave. Esto es destacable dado que, es posible que con una transformación de los datos, el modelo resultante cumpla ahora el supuesto de normalidad. 
+
+\subsection{Media 0 y Varianza constante}
+
+```{r fig.cap="Gráfico de residuales estudentizados vs Valores ajustados", out.width = "60%"}
+res.stud <- round(rstudent(modelo), 4)
+yhat <- round(modelo$fitted.values, 4)
+plot(yhat, res.stud, xlab="Residuales estudentizados", ylab="Valores ajustados",pch=20, ylim=c(-4, 3)); abline(h=0, lty=2, lwd=2, col=2)
+```
+Analizando el gráfico anterior podemos concluir que el modelo planteado cumple con el supuesto de media 0 y varianza constante.
+
+Notemos que hay algunos puntos que se encuentran dispersos, pero en general podemos concluir lo propuesto anteriormente.
+
+```{r}
+cook.D <- round(cooks.distance(modelo), 4)
+hii.value <- round(hatvalues(modelo), 4)
+dffts <- round(dffits(modelo), 4)
+base.diagnostico <- data.frame(res.stud, cook.D, hii.value, dffts)
+```
+
+\subsubsection{Datos atípicos}
+
+```{r fig.cap="Identificacion de datos atípicos", out.width = "60%"}
+with(base.diagnostico, plot(res.stud, xlab = "Observación", ylab = "Residuales", pch=20, ylim=c(-5, 5)));abline(h=3, col="red", lty="dashed"); abline(h=-3, col="red", lty="dashed")
+
+```
+Observando el gráfico vemos que es un dato atípico, esta observación es la número 59, la cual tiene un $|r_{estud}|>3$, el resto de observación se encuentran dentro de los límites.
+
+\subsubsection{Puntos de balanceo}
+```{r fig.cap="Identificación de puntos de balanceo", out.width = "60%"}
+hii.criterio = 2*(7/nrow(datos))
+with(base.diagnostico, plot(hii.value, xlab = "Observacion", ylab = "Valor hii", pch = 20, ylim = c(-0.1,0.3))); abline(h=hii.criterio, col="red", lty="dashed")
+```
+Al realizar un análisis del gráfico anterior, y con base en el criterio de los $h_{ii}$ que es $h_{ii}>2p/n$,se pueden detectar 4 puntos de balanceo para este modelo los cuales son los que se encuentran en la parte superior de la linea roja. Estas son las observaciones 4, 25, 50 y 59.
+
+```{r include=F}
+base.diagnostico[base.diagnostico$hii.value>hii.criterio, ]
+```
+
+\subsubsection{Puntos influenciables}
+Bajo el criterio de Cook, el cual nos dice que si $D_i>1$ la observacion $i$, sera influenciable tenemos:
+```{r fig.cap="Criterio de distancias de Cook para puntos influenciables", out.width = "60%"}
+criterio.cook <- 1
+with(base.diagnostico, plot(cook.D, xlab="Observacion", ylab="Distancia de Cook", pch=20, ylim = c(-0.1, 1.5))); abline(h=criterio.cook, col="red", lty="dashed")
+```
+Según la gráfica basada en la distancia de Cook, nos damos cuenta que no existe una observación con $D_i$ alto, es decir que no hay ninguna observación que tenga influencia sobre el vector de parámetros estimados $\hat{\beta}$.
+
+Bajo el criterio de DFFITS, el cual nos dice que una observación sera influencial si $|DFFITS_i|>2\sqrt{p/n}$, asi:
+```{r fig.cap="Criterio Dffits para puntos influenciales", out.width = "60%"}
+dffits.criterio <- 2*sqrt(7/nrow(datos))
+with(base.diagnostico, plot(dffts, xlab="Observacion", ylab="Dffit", pch=20, ylim = c(-4, 2))); abline(h=-dffits.criterio, col="red", lty="dashed"); abline(h=dffits.criterio, col="red", lty="dashed"); 
+```
+Según la gráfica basada en el diagnóstico DFFITS, existen seis observaciones las cuales son mayores al criterio, es decir, $|DFFITS_i|>2\sqrt{p/n}$, lo que las hace influenciales. Dichas observaciones son la 4, 15, 16, 29, 50 y 59.
+```{r include=FALSE}
+base.diagnostico[base.diagnostico$dffts >dffits.criterio | base.diagnostico$dffts < -dffits.criterio, ]
+```
+
