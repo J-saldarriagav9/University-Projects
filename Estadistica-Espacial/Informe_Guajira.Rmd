@@ -1,0 +1,855 @@
+---
+title: "Análisis de la Salinidad en La Guajira"
+author:
+  - name: "María Isabel Carvajal Londoño"
+    affiliation: "macarvajall@unal.edu.co - Universidad Nacional de Colombia, sede Medellín"
+  - name: "Juan Manuel Saldarriaga Velásquez"
+    affiliation: "jsaldarriagav@unal.edu.co - Universidad Nacional de Colombia, sede Medellín"
+date: "Junio, 2025"
+output:
+  html_document:
+    theme: flatly
+    highlight: tango
+    toc: true
+    toc_title: "Tabla de contenidos"
+    toc_depth: 3
+    toc_float: true
+    df_print: paged
+---
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include=FALSE}
+library(readxl)
+library(tidyverse)
+library(dplyr)
+library(magrittr)
+library(janitor)
+library(stringr)
+library(sf)
+library(sp)     
+library(geoR)
+library(ade4)
+library(vegan)
+library(ggplot2)
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(leaflet)
+library(kableExtra)
+library(gstat)
+library(sm)
+```
+
+
+# **Introducción**
+
+La salinidad del agua subterránea es un indicador clave de la calidad y aptitud de los recursos hídricos, especialmente en regiones áridas donde la disponibilidad de agua dulce es limitada. En el departamento de La Guajira, la composición de las aguas subterráneas está dominada por cationes como sodio y calcio, y aniones como cloro y magnesio, medidos en PSU (Practical Salinity Units), equivalentes a gramos de sal por litro. La variabilidad espacial de la salinidad en La Guajira obedece, en gran medida, a procesos hidrológicos y geológicos locales: intrusión marina en zonas costeras, afloramiento de acuíferos en áreas elevadas e influencia de depósitos fluviales en las riberas de ríos como el Ranchería y el Cesar.
+
+Los inventarios realizados muestran que en la Alta Guajira los valores oscilan entre 0.248 y 40.360 PSU (media 3.553 PSU), con las conductividades más bajas asociadas a manantiales de estructura rocosa y las más altas a captaciones próximas a la costa, reflejando intrusión marina. En la Media Guajira, los registros varían de 0.089 a 59.8 PSU (media 1.785 PSU), donde los puntos con salinidad mínima se ubican en depósitos aluviales recientes y los máximos en la llanura aluvial del Ranchería. Aquí, predominan las aguas salobres, con pocos aljibes catalogados como marinos. Por último, en la Baja Guajira, la salinidad va de 0.063 a 23.47 PSU (media 0.694 PSU), presentando la proporción más alta de aguas dulces por la influencia de cauces fluviales y abanicos aluviales. A pesar de estas diferencias, la clasificación media de las tres zonas se sitúa en el rango de aguas salobres. 
+
+En particular, la Guajira produce el 70% del cloruro de sodio a nivel nacional (Banco de la República, s.f), lo cual, hace imperativo su análisis.
+
+
+# **Planteamiento del problema**
+
+El departamento de La Guajira, ubicado en el extremo norte de Colombia, enfrenta condiciones climáticas extremas caracterizadas por precipitaciones escasas, alta radiación solar y una prolongada estación seca (IDEAM, 2021). Estas condiciones, sumadas a la sobreexplotación de recursos hídricos y a la creciente presión sobre acuíferos y cuerpos de agua superficiales, han generado un incremento en los niveles de salinidad del suelo y del agua en diversas zonas del territorio. La salinidad, entendida como la concentración de sales solubles en el agua o en el suelo, constituye un factor crítico para la sostenibilidad ambiental, la seguridad alimentaria y la salud pública en esta región (FAO, 2015; Qadir et al., 2014).
+
+Desde el punto de vista agrícola, la acumulación de sales en el suelo reduce la productividad de los cultivos y limita las posibilidades de diversificación agrícola, afectando especialmente a las comunidades indígenas y rurales cuya economía depende directamente de la tierra (Qadir et al., 2014). A nivel hídrico, el aumento de la salinidad compromete la potabilidad del agua, exacerba los problemas de acceso al recurso y genera riesgos sanitarios en las zonas más vulnerables (González & Rudas, 2019). En este sentido, el Servicio Geológico Colombiano (SGC) ha señalado la urgencia de estudiar el potencial de las aguas subterráneas del departamento y su calidad, con el fin de evaluar si son aprovechables frente a la crisis hídrica (El Espectador, 2024).
+
+Por estas razones, estudiar la salinidad en La Guajira no solo es relevante desde una perspectiva ambiental, sino también desde un enfoque social y de política pública. Sin embargo, el monitoreo de la salinidad se enfrenta a limitaciones por la escasez de estaciones de medición y la dispersión geográfica de los puntos de muestreo. En este contexto, las herramientas de análisis espacial y geoestadístico, como el kriging, se vuelven fundamentales para estimar la salinidad en áreas no muestreadas y generar mapas de riesgo a partir de datos puntuales.
+
+
+# **Objetivo**
+
+Desarrollar un modelo geoestadístico para mapear la salinidad de las aguas subterráneas en La Guajira.
+
+# **Motivación** 
+
+En un contexto donde la escasez de agua dulce se agrava debido al cambio climático, el uso intensivo de fuentes subterráneas y la falta de infraestructura hídrica, comprender la distribución espacial de la salinidad en los acuíferos de La Guajira se vuelve una prioridad estratégica. La salinización de aguas subterráneas no solo limita la disponibilidad de agua para consumo humano, sino que también reduce la capacidad de respuesta de los sistemas locales ante eventos de sequía prolongada, afectando de forma desproporcionada a comunidades vulnerables y rurales (ANLA, 2020).
+
+El análisis espacial de la salinidad permite identificar zonas críticas donde la calidad del recurso hídrico ha sido comprometida, ya sea por procesos naturales de intrusión salina, comunes en zonas costeras, o por actividades antropogénicas como la sobreexplotación de pozos y el uso inadecuado de prácticas agrícolas.
+
+
+# **¿Qué se pretende estudiar en esta primera etapa?**
+¿Cómo se distribuye espacialmente la salinidad en el departamento de La Guajira y cuáles son las zonas con mayor y menor riesgo de salinización según los modelos geoestadísticos?
+
+
+# **Análisis Estructural Geoestadístico**
+
+La base de datos consta de 1.673 observaciones y 33 variables. Para esta etapa focalizaremos el análisis en las coordenadas espaciales (X, Y) y en la variable de respuesta Z, que registra los niveles de salinidad. Antes de avanzar con la modelación geoestadística, se realizó una exploración preliminar que incluyó la transofrmación del sistema de coordenadas a UTM, zona 18N. 
+
+A continuación, se muestra el encabezado de los datos:
+
+```{r, message=FALSE, echo=FALSE}
+sal <- read_csv("_Salinidad_Guajira.csv")
+sal %>% 
+  head() %>% 
+  as_tibble() %>% 
+  kable(
+    caption = "Encabezado de los datos",
+    align   = "c"
+  )
+```
+
+## Análisis Descriptivo
+
+Para familiarizar al lector con la distribución espacial y cuantitativa de la salinidad en La Guajira, se ha realizado un análisis descriptivo de los datos.
+
+```{r, message=FALSE, echo=FALSE}
+library(knitr)
+
+resumen_sal <- data.frame(
+  Estadístico = c("Min.", "1st Qu.", "Median", "Mean", "3rd Qu.", "Max."),
+  SAL         = c(0.063,   0.504,     0.880,    1.722,    1.782,     59.800)
+)
+
+kable(
+  resumen_sal,
+  caption = "Resumen Estadístico de SAL",
+  align   = "c"
+)
+
+```
+
+La distribución de SAL muestra un fuerte sesgo positivo: la media (1.722) casi duplica la mediana (0.880), impulsada por un valor atípico extremo (59.800) lo cual puede dar pie aplicar una transformaciones (por ejemplo, logarítmica) o utilizar medidas robustas para mitigar el impacto de esos valores extremos.
+
+
+Asimismo, con el fin de observar la cobertura del área de estudio se presenta el siguiente gráfico:
+
+```{r, message=FALSE, echo=FALSE}
+sal_sf <- sal %>%
+  select(lon_utm = 9, lat_utm = 10, salinidad = 33) %>%
+  filter(!is.na(lon_utm) & !is.na(lat_utm)) %>%
+  st_as_sf(coords = c("lon_utm", "lat_utm"), crs = 3116)
+
+sal_wgs <- st_transform(sal_sf, crs = 4326) %>%
+  mutate(
+    lon = st_coordinates(.)[,1],
+    lat = st_coordinates(.)[,2]
+  )
+
+
+leaflet(sal_wgs) %>%
+  addProviderTiles("CartoDB.Positron") %>%
+  addCircleMarkers(
+    lng         = ~lon,
+    lat         = ~lat,
+    radius      = 4,
+    stroke      = FALSE,
+    fillColor   = "#0073B7",
+    fillOpacity = 0.8,
+    label       = ~sprintf("Salinidad: %.2f PSU", salinidad)
+  ) %>%
+  addScaleBar(position = "bottomleft")
+
+
+```
+
+De igual manera, para visualizar la distribución espacial de la salinidad en La Guajira, el siguiente gráfico emplea una escala de color que va de azul/verde en las zonas de menor altitud (cercanas a la Sierra Nevada de Santa Marta), donde el aporte de agua dulce diluye la salinidad, hasta tonos cálidos (amarillo, magenta y rojo) en las áreas elevadas, donde la mayor evaporación y la limitada escorrentía concentran las sales, evidenciando así un claro gradiente altitudinal en los niveles de sal que será de interés considerar en los análisis posteriores.
+
+```{r,message=FALSE, echo=FALSE}
+# Define los cortes y la paleta
+breaks_sal <- c(0.06, 0.31, 0.61, 1.01, 3.01, 59.80)
+pal_bin <- colorBin(
+  palette = c("cyan", "green", "yellow", "magenta", "red"),
+  domain  = sal_wgs$salinidad,
+  bins    = breaks_sal,
+  na.color = "transparent",
+  right    = FALSE
+)
+
+# Mapa Leaflet con leyenda de bins
+leaflet(sal_wgs) %>%
+  addProviderTiles("CartoDB.Positron") %>%
+  addCircleMarkers(
+    lng = ~lon, lat = ~lat,
+    radius      = 4,
+    stroke      = FALSE, 
+    color = "#333",
+    fillColor   = ~pal_bin(salinidad),
+    fillOpacity = 1,
+    label       = ~sprintf("Salinidad: %.2f PSU", salinidad)
+  ) %>%
+  addLegend(
+    position = "bottomright",
+    pal      = pal_bin,
+    values   = ~salinidad,
+    title    = "Salinidad (PSU)",
+    labFormat = function(type, cuts, p) {
+      # personaliza las etiquetas de los cortes
+      paste0(
+        sprintf("%.2f", cuts[-length(cuts)]), " &ndash; ",
+        sprintf("%.2f", cuts[-1])
+      )
+    }
+  ) %>%
+  addScaleBar(position = "bottomleft")
+
+```
+
+Finalmente, se incluye un diagrama de dispersión de los puntos con sus coordenadas UTM y su contorno, de manera que el lector pueda verificar visualmente el uso correcto de este sistema de referencia espacial.
+
+```{r,message=FALSE, echo=FALSE, warning=FALSE}
+
+x <- names(sal)[9]
+y <- names(sal)[10]
+
+limites <- st_read("La_Guajira.shp", quiet=TRUE) %>%
+  st_transform(crs = 3116)
+
+limites_df <- limites %>%
+  st_cast("MULTILINESTRING") %>%
+  st_coordinates() %>%
+  as.data.frame()
+
+limites_df$group <- limites_df$L1
+
+
+
+# Graficar todo con coordenadas planas
+ggplot() +
+  geom_path(data = limites_df, aes(x = X, y = Y, group = group), color = "black", size = 0.4) +
+  geom_point(data = sal, aes_string(x = x, y = y), alpha = 0.6, color = "black", pch=19) +
+  labs(
+    x = "X",
+    y = "Y",
+    title = " "
+  ) +
+  theme_minimal()
+```
+
+## Análisis Estructural 
+
+A continuación se calcula la matriz de distancias espaciales (en UTM) y la disimilitud al cuadrado de la salinidad y se presenta el semivariograma cloud:
+
+```{r, include=FALSE}
+geodist <- dist(sal[,9:10], diag = TRUE, upper = TRUE)
+
+dist.temp <- dist(sal[,33], diag = TRUE, upper = TRUE)^2
+
+df <- data.frame(Disimilitud = dist.temp[lower.tri(dist.temp)],
+                 Distancia = geodist[lower.tri(geodist)])
+
+df = na.omit(df)
+dim(df)
+```
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(df, aes(x=Distancia, y=Disimilitud))+
+  geom_point() +
+  geom_smooth(method = 'lm')+
+  labs(x="Distancia geográfica (m)", y="Disimilitud") +
+  theme_minimal()
+```
+
+
+El variograma empírico revela que, aunque en distancias prácticamente nulas persiste una variabilidad mínima (debido al efecto pepita), la disimilitud de salinidad crece de manera pronunciada hasta aproximadamente 10000–15000 m (lo que define el rango espacial), y a partir de ahí se estabiliza en un valor constante (meseta), indicando que más allá de ese umbral las observaciones ya no comparten una autocorrelación notable.
+
+Debido a esta tendencia, se plantea el test de Mantel para confirmar las hipótesis anteriormente dichas:
+
+Sea el siguiente contraste de hipótesis espacial:
+\[
+\begin{cases}
+H_{0}: & \text{Hay aleatoriedad espacial},\\
+H_{1}: & \text{Hay estructura espacial}.
+\end{cases}
+\]
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(knitr)
+library(kableExtra)
+
+# Tabla 1
+t1 <- data.frame(
+  "Mantel (r)" = 0.04806,
+  "p-valor" = 0.019
+) %>%
+  kable( caption = "Test de Mantel", align   = "c")%>%
+  kable_styling(full_width = FALSE, font_size = 14) %>%
+  column_spec(1:2, width = "4cm")
+t1
+
+# Tabla 2
+t2 <- data.frame(
+  "Mantel (r)" = 0.04806,
+  "p-valor" = 0.023,
+  "N° Repeticiones" = 999
+) %>%
+  kable( caption = "Test de Mantel con permutaciones", align   = "c") %>%
+  kable_styling(full_width = FALSE, font_size = 14) %>%
+  column_spec(1:3, width = "3cm")
+t2
+
+```
+
+Tras calcular el estadístico de Mantel y obtener p-valores menores a $\alpha=0.05$ tanto en la prueba simple (p=0.019) como en la de 999 permutaciones (p=0.023), se rechaza la hipótesis nula de aleatoriedad espacial, validando la presencia de autocorrelación en los datos de salinidad y justificando el uso posterior de modelos geoestadísticos (variograma teórico y kriging) para la interpolación en toda la región de La Guajira.
+
+
+
+Asimismo, se plantea el test de normalidad:
+
+
+\[
+\begin{cases}
+H_{0}: & \text{Hay Normalidad en los datos},\\
+H_{1}: & \text{No hay normalidad en los datos}.
+\end{cases}
+\]
+
+```{r, echo=FALSE}
+df1 <- data.frame(
+  data     = sal$SAL,
+  X_Coord  = sal$X,
+  Y_Coord  = sal$Y
+)
+
+
+myQQnorm <- function(modelo, student = F, ...){
+  if(student){
+    res <- rstandard(modelo)
+    lab.plot <- "Normal Q-Q Plot of Studentized Residuals"
+  } else {
+    res <- residuals(modelo)
+    lab.plot <- " "
+  }
+  shapiro <- shapiro.test(res)
+  shapvalue <- ifelse(shapiro$p.value < 0.001, "P value < 0.001", paste("P value = ", round(shapiro$p.value, 4), sep = ""))
+  shapstat <- paste("W = ", round(shapiro$statistic, 4), sep = "")
+  q <- qqnorm(res, plot.it = FALSE)
+  qqnorm(res, main = lab.plot, ...)
+  qqline(res, lty = 2, col = 2)
+  text(min(q$x, na.rm = TRUE), max(q$y, na.rm = TRUE)*0.95, pos = 4, 'Shapiro-Wilk Test', col = "blue", font = 2)
+  text(min(q$x, na.rm = TRUE), max(q$y, na.rm = TRUE)*0.80, pos = 4, shapstat, col = "blue", font = 3)
+  text(min(q$x, na.rm = TRUE), max(q$y, na.rm = TRUE)*0.65, pos = 4, shapvalue, col = "blue", font = 3)
+}
+
+modelo <- lm(data ~ X_Coord + Y_Coord, data = df1)
+myQQnorm(modelo)
+
+```
+
+
+Con un nivel de significancia $\alpha = 0.05$, la prueba rechaza la hipótesis nula de normalidad, evidenciando que los datos no siguen una distribución normal. Sin embargo, esto no compromete el análisis, puesto que podemos recurrir a estimadores robustos o aplicar transformaciones adecuadas; lo esencial es garantizar el cumplimiento de la estructura espacial subyacente para llevar a cabo una interpolación kriging válida.
+
+## Visualización Exploratoria de la Salinidad 
+
+A continuación se presenta un conjunto de gráficos descriptivos que permiten examinar la distribución espacial y marginal de los niveles de salinidad registrados en La Guajira. 
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+# Eliminar filas con coordenadas duplicadas
+sal <- sal[!duplicated(sal[, c(9, 10)]), ]
+
+geo <- as.geodata(
+  sal,
+  coords.col = c(9, 10),
+  data.col   = 33,
+  borders    = TRUE
+)
+limites_sf <- st_read("La_Guajira.shp", quiet=TRUE) %>%
+  st_transform(crs = 3116)
+
+sf_objeto <- st_as_sf(limites_sf)
+contorno <- st_union(sf_objeto)
+borde <- st_coordinates(contorno)[,1:2] %>% as.data.frame()
+geo$borders <- borde
+
+plot(geo)
+```
+
+En el panel superior izquierdo, la nube de puntos coloreados sobre el contorno de La Guajira muestra la cobertura espacial de las 1.673 mediciones de salinidad, sin un gradiente evidente en X–Y más allá de la forma del polígono; en los paneles de la derecha e inferior izquierdo, los valores de salinidad frente a las coordenadas Y y X confirman que los datos altos aparecen dispersos y no se concentran en zonas particulares del territorio; por último, el histograma de densidad (inferior derecho) evidencia una fuerte asimetría positiva (la mayoría de las observaciones se ubica cerca de cero con una larga cola de valores altos), lo que sugiere la necesidad de transformaciones o métodos robustos para el análisis geoestadístico en etapas posteriores.
+
+Asimismo, debido a que en el gráfico anterior no se observa una tendencia clara, el histograma permite identificar ciertas mejoras en términos de asimetría. Sin embargo, en el gráfico mostrado a continuación persisten agrupamientos en zonas específicas. En los paneles derecho e inferior izquierdo (residuos vs. coordenadas Y y X, respectivamente) no se evidencia un patrón sistemático a lo largo de ninguno de los ejes, lo cual es deseable. No obstante, el histograma de densidad continúa mostrando una asimetría positiva con una cola larga hacia la derecha, lo que indica la conveniencia de utilizar estimadores robustos al modelar la estructura de autocorrelación espacial. 
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+plot(geo, lowess = T, trend = '1st')
+```
+
+
+```{r, include=FALSE}
+# Tipo bin
+dm=144892.119
+bin1 <- variog(geo, option = "bin")
+bin2 <- variog(geo, option = "bin", trend = "1st", max.dist = dm)
+```
+
+```{r, include=FALSE}
+test.ace <- variog.mc.env(geo, obj.variog = bin2)
+```
+
+
+
+# Semivariogramas
+
+## Semivariograma tipo Bin (sin distancia máxima)
+
+```{r, include=FALSE}
+# Define manualmente los límites de los bins
+breaks_manual <- seq(0, 260000, length.out = 11)  # 10 bins = 11 puntos de corte
+
+# Calcular semivariograma binned
+bin1 <- variog(geo, option = "bin")
+
+
+
+# Graficar con puntos rellenos y línea conectada
+plot(bin1, pch = 19, ylim = c(0, 18))
+lines(bin1$u, bin1$v, col = "black", lwd = 1)
+```
+
+El semivariograma muestra un aumento de la semivarianza con la distancia hasta aproximadamente 125.000 metros, lo que indica autocorrelación espacial positiva entre puntos cercanos. A partir de esa distancia, la semivarianza se estabiliza, sugiriendo independencia espacial. El valor del "nugget" parece cercano a 1, reflejando variabilidad a escalas muy pequeñas o error de medición, mientras que el "sill" se aproxima a 17, representando la variabilidad total del fenómeno. El "range" estimado indica que la correlación espacial se pierde más allá de los 125 km. Este comportamiento justifica el ajuste de un modelo esférico o gaussiano para representar la estructura espacial subyacente.
+
+## Semivariograma tipo Bin (con max.dist=144892.119)
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+bin2 <- variog(geo, option = "bin", max.dist = 144892.119)
+
+# el pch es para definir la forma del punto, en este caso es para tomar un circulo con relleno
+plot(bin2, pch = 19, xlim=c(0,150000), main = " ")
+lines(bin2$u, bin2$v, col = "black", lwd = 1)
+```
+
+Este semivariograma, construido con una distancia máxima limitada a aproximadamente 145.000 metros, muestra un comportamiento similar al anterior, aunque se restringe al rango donde la autocorrelación espacial es más evidente. La semivarianza aumenta progresivamente hasta estabilizarse cerca de los 100.000 a 125.000 metros, lo que sugiere una fuerte dependencia espacial dentro de ese rango. El valor del nugget se mantiene bajo, indicando baja variabilidad a escala muy pequeña, mientras que el sill se estabiliza alrededor de 17. Este corte en la distancia elimina la parte más errática del semivariograma largo y resalta con mayor claridad la estructura espacial relevante, facilitando el ajuste de un modelo esférico o exponencial con mejor precisión.
+
+## Semivariogramas con envolventes
+
+Por último, se presentan los semivariogramasde la variable de salinidad observada en La Guajira, acompañados de sus respectivas envolventes para el estimador clásico y robusto respectivamente.
+
+```{r, include=FALSE}
+robust_vario <- variog(geo,
+                       option = "bin", 
+                       estimator.type = "modulus", 
+                       max.dist = 144892.119)
+
+set.seed(123)
+envel_robust <- variog.mc.env(geo,
+                              obj.variog = robust_vario,
+                              nsim = 99)  
+
+```
+
+```{r, echo=FALSE}
+plot(robust_vario, pch = 19, main = "Estimador Clásico",  ylim=c(0, 6))
+lines(test.ace, lwd = 1)
+```
+
+```{r, echo=FALSE}
+plot(robust_vario, pch = 19, main = "Estimador Robusto", envelope = envel_robust, ylim=c(0, 6))
+lines(robust_vario$u, robust_vario$v, col = "black", lwd = 1)
+```
+
+Este semivariograma robusto con envolventes muestra un crecimiento progresivo de la semivarianza conforme aumenta la distancia entre observaciones, lo que indica una **autocorrelación espacial positiva** dentro del rango analizado. La mayor parte de los puntos del semivariograma se ubican **por encima del límite superior de las envolventes** obtenidas por simulación aleatoria, lo cual **sugiere la presencia de dependencia espacial**.
+
+El uso del estimador robusto ("modulus") reduce la influencia de valores atípicos, que es observable en su análogo, permitiendo una representación más estable de la estructura espacial subyacente. La semivarianza se mantiene baja a distancias cortas y comienza a incrementarse de manera más marcada a partir de los 80.000 metros, alcanzando valores cercanos a 4.0 en los 130.000 metros, lo que podría estar indicando un **range** (rango de autocorrelación) aún no completamente alcanzado dentro del gráfico. Esto sugiere que podrían ser necesarias mayores distancias para observar estabilización (sill) en la variabilidad espacial.
+
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+sm.variogram(geo$coords, geo$data, model = "independent", ylim=c(0,10))
+```
+
+Por último, para corroborar la presencia de estructura espacial se construyó el semivariograma. La banda turquesa representa un intervalo de confianza obtenido por simulación bajo el supuesto de independencia espacial; que buena parte de los puntos empíricos quede sistemáticamente por encima de esa banda a partir de distancias intermedias evidencia un claro rechazo de la independencia y confirma la existencia de dependencia espacial o estructura en los datos.
+
+```{r, include=FALSE}
+plot(bin2)
+eyefit(bin2)
+```
+
+
+
+# Estimación de los parámetros de la función de covarianza
+
+A partir de los valores iniciales obtenidos con \texttt{eyefit} (\(\sigma^2 \approx 11.27\), \(\phi \approx 139\,121\)), se ajustó un semivariograma teórico usando la familia Matern con \(\kappa\) fijo en \(0.5\) —equivalente al exponencial— y sin efecto nugget (\(\tau^2 = 0\)). El ajuste por mínimos cuadrados ponderados proporcionó unas estimaciones de \(\sigma^2 = 17.5133\) y \(\phi = 86\,890.3954\). En la gráfica, la curva teórica (línea roja) sigue de cerca la tendencia de los puntos empíricos (puntos azules), indicando que el modelo captura con precisión la forma creciente de la semivarianza a distancias cortas y medias, así como su transición hacia la meseta del sill.
+
+El cálculo del rango práctico —distancia a la cual la correlación residual cae a \(0.05\)— resultó en \(260\,300.4\) unidades, lo que implica que las observaciones permanecen espacialmente correlacionadas hasta aproximadamente \(260\)\,km. Más allá de ese umbral, la semivarianza se estabiliza alrededor del sill, reflejando la atenuación de la dependencia espacial. El valor minimizado de la suma de cuadrados ponderados (\(1\,241\,792\)) respalda la solidez del ajuste: a pesar de cierta dispersión en puntos intermedios, el modelo Matern con \(\kappa = 0.5\) describe fielmente la variabilidad espacial observada.
+
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+ini.vals1 <- c(11.27,139121.147719498)
+fit_matern <- variofit(vario = bin2,ini.cov.pars = ini.vals1, fix.nugget =T,
+                   weights = "npairs", min="optim", nugget = 0)
+
+plot(bin2, pch=21, bg="black", lwd="black",
+     main="Semivariograma con ajuste Matern")
+lines(fit_matern, lwd = 2, col = "red")
+```
+
+El ajuste Matern refleja adecuadamente la tendencia de los datos, confirmando una dependencia espacial positiva y continua hasta aproximadamente 130.000 metros, donde la semivarianza se estabiliza, lo que sugiere un rango amplio de autocorrelación y una transición gradual hacia la independencia espacial.
+
+```{r, include=FALSE}
+library(geoR)
+
+# Valores iniciales
+
+ini.vals <- c(11.27, 139121.15)  # sill parcial, rango
+
+# Ajuste 1: Modelo Matérn con nugget fijo en 0
+fit_nug0 <- variofit(
+  vario = bin2,
+  ini.cov.pars = ini.vals,
+  cov.model = "matern",
+  fix.nugget = TRUE,
+  nugget = 0,
+  weights = "npairs",
+  min = "optim"
+)
+
+# Ajuste 2: Modelo Matérn con nugget libre
+fit_nug_free <- variofit(
+  vario = bin2,
+  ini.cov.pars = ini.vals,
+  cov.model = "matern",
+  fix.nugget = FALSE,
+  weights = "npairs",
+  min = "optim"
+)
+
+# Comparar gráficamente
+plot(bin2, pch = 21, bg = "black", lwd = 1.2,
+     main = "Comparación de ajustes con y sin nugget",
+     xlab = "Distancia", ylab = "Semivarianza")
+lines(fit_nug0, col = "red", lwd = 2)
+lines(fit_nug_free, col = "blue", lwd = 2, lty = 2)
+legend("bottomright", legend = c("Nugget = 0 (fijo)", "Nugget estimado"),
+       col = c("red", "blue"), lty = c(1,2), lwd = 2)
+
+# Revisar parámetros estimados
+summary(fit_nug0)
+summary(fit_nug_free)
+
+```
+
+
+De manera análoga, se realizó este procedimiento con otras estimaciones, en la cuales, El semivariograma revela una clara discrepancia entre la estructura empírica de dependencia espacial y el modelo ajustado mediante máxima verosimilitud (ML) y verosimilitud restringida (RML), los cuales, al estar sujetos a restricciones idénticas —nugget y parámetro de suavidad (kappa) fijados—, producen resultados equivalentes. Si bien el modelo alcanza un sill definido y refleja un rango coherente con los datos, subestima de forma sistemática la semivarianza observada en distancias medias y largas, lo que compromete su capacidad para capturar adecuadamente la variabilidad espacial subyacente. En consecuencia, dada la limitada fidelidad del ajuste, este modelo será descartado y no se considerará en el análisis posterior.
+
+```{r, echo=FALSE, warning=FALSE, message=FALSE}
+ml <- likfit(geo, ini.cov.pars = c(11.27,139121.147719498),
+              fix.nugget = TRUE, cov.model = "exp", fix.kappa = TRUE,
+              lik.method = "ML", messages = F)
+
+rml <- likfit(geo, ini.cov.pars = c(11.27,139121.147719498),
+                fix.nugget=TRUE, cov.model = "exp", fix.kappa=TRUE, 
+                lik.method="RML", messages = F)
+
+plot(bin2,xlab = "Distancia", ylab = "Semivarianza", pch=21, bg="black", lwd="black", main = "Semivariograma con ajuste Ml y RML")
+lines(ml)
+lines(rml, lwd = 2, col="red") #restringido
+```
+
+El modelo ajustado por MI y RML alcanza rápidamente el sill, estableciendo un rango de autocorrelación cercano a los 10.000 metros, lo que indica una dependencia espacial fuerte pero localizada. La forma escalonada del ajuste, aunque menos flexible, resalta una transición abrupta hacia la independencia espacial y refleja una estrategia de modelado más conservadora frente a la variabilidad observada.
+
+# Predicción Espacial
+
+Con el objetivo de realizar la interpolación espacial, se generó una malla regular compuesta por 10.000 puntos distribuidos sobre el territorio del departamento de La Guajira. Esta malla define las ubicaciones en las cuales se llevará a cabo la predicción mediante kriging. A continuación, se presenta la visualización de dicha malla superpuesta sobre el contorno geográfico del área de estudio.
+
+
+
+```{r, echo=FALSE}
+
+limites_sf <- st_read("La_Guajira.shp", quiet = TRUE) %>%
+  st_transform(crs = 3116)
+
+contorno    <- st_union(limites_sf)
+cont_sp     <- as(contorno, "Spatial")  
+spdf        <- SpatialPolygonsDataFrame(cont_sp,
+               data = data.frame(id = 1),
+               match.ID = FALSE)
+
+df <- data.frame(X = sal$X, Y= sal$Y, data = sal$SAL)
+
+
+resumen_geo <- summary(as.geodata(
+  df,               
+  coords.col = 1:2,  
+  data.col   = 3     
+))
+dm2 <- resumen_geo$distances.summary[2] / 2
+cat("Rango empírico ≃", dm2, "metros\n")
+
+# grilla de 10 000 puntos
+grd       <- sp::makegrid(spdf, n = 10000)
+grd_df    <- as.data.frame(grd)
+colnames(grd_df) <- c("X","Y")
+
+
+pts       <- SpatialPoints(grd_df, proj4string = CRS(proj4string(spdf)))
+pts_in    <- pts[spdf, ]
+gdf       <- as.data.frame(coordinates(pts_in))
+
+ggplot(gdf, aes(x = X, y = Y)) +
+  geom_point(size = 0.6, alpha = 0.6) +
+  labs(
+    title    = ""
+  ) +
+  theme_bw() +
+  coord_equal()
+
+```
+
+
+Luego, se presenta la visualización de dicha malla superpuesta al contorno geográfico del área de estudio, junto con los datos observados de salinidad. El gráfico presentado muestra la distribución espacial de los niveles de salinidad en el departamento de La Guajira, representada mediante una escala de color que varía desde tonos azul claro (baja salinidad) hasta rojo oscuro (alta salinidad). Esta visualización permite identificar zonas específicas con concentraciones elevadas, especialmente en el norte y noreste del departamento, mientras que la mayor parte del territorio presenta niveles moderados o bajos de salinidad. La presencia de estos focos de alta concentración, junto con la variabilidad general observada, sugiere que la media del proceso no es constante en el espacio (afirmación respaldada por el gráfico de salinidad con clasificación por intervalos (breaks), en el que se evidencia claramente que los valores medios varían geográficamente) lo cual evidencia una tendencia geográfica en los datos. Esta heterogeneidad sugiere una alta variabilidad espacial del fenómeno, posiblemente influenciada por condiciones hidroclimáticas, geológicas o antrópicas localizadas.
+
+```{r, echo=FALSE}
+
+df_plot <- data.frame(
+  X       = geo$coords[,1],
+  Y       = geo$coords[,2],
+  Sal     = geo$data
+)
+
+# 2. Prepara el contorno como data.frame
+df_border <- data.frame(
+  X = geo$borders[,1],
+  Y = geo$borders[,2]
+)
+
+ggplot(df_plot, aes(x = X, y = Y, color = Sal)) +
+  geom_point(size = 2) +
+  coord_fixed(ratio = 1) +
+  scale_color_gradient(
+    low  = "lightblue",
+    high = "darkred",
+    name = "Salinidad"
+  ) +
+  geom_path(
+    data         = df_border,
+    aes(x = X, y = Y),
+    color        = "black",
+    size         = 0.8,
+    inherit.aes  = FALSE
+  ) +
+  labs(
+    title    = " "
+  ) +
+  theme_bw()
+
+```
+
+
+```{r, include=FALSE}
+proj4string(df) <- CRS("+init=epsg:3116") 
+
+npts <- nrow(coordinates(gdf))
+
+
+gdf_spdf <- SpatialPixelsDataFrame(
+  points      = gdf,
+  data        = data.frame(dummy = rep(NA, npts)),
+  proj4string = CRS(proj4string(df))
+)
+proj_df <- proj4string(df)
+proj4string(gdf_spdf) <- CRS(proj_df)
+
+```
+
+
+# Kriging
+
+## Ordinario
+
+El kriging ordinario es una técnica de interpolación espacial que asume una tendencia constante en todo el dominio de estudio. Bajo este enfoque, se considera que la media del proceso es desconocida pero uniforme, por lo que el modelo se centra únicamente en capturar la estructura de dependencia espacial a través del semivariograma. Esta metodología resulta adecuada cuando no se evidencian variaciones sistemáticas en la tendencia de los datos a lo largo del territorio, es decir, cuando no hay indicios de gradientes espaciales marcados. Por tanto, el kriging ordinario es especialmente útil en contextos donde se espera que la media del fenómeno sea homogénea en todo el área de estudio.
+
+Usando los parámetros estimados a partir del semivariograma experimental (bin2), se ajustó un modelo ordinario:
+
+```{r, include=FALSE}
+variog1 <- variog(geo, option="bin", max.dist=dm2)
+mod_ols1 <- variofit(variog1, ini.cov.pars = c(11.27,139121.147719498),
+                     fix.nugget =T,weights = "npairs", 
+                     min="optim", nugget = 0)
+```
+
+```{r, include=FALSE}
+# Supone que bin2 es un objeto de clase variogram ya creado con geoR::variog()
+
+# Paso 1: Inspeccionar los valores de semivarianza y distancia
+head(bin2)           # Ver estructura del objeto
+summary(bin2$v)      # Ver distribución de los valores de semivarianza
+
+# Paso 2: Estimar el sill total como el promedio de las últimas clases (donde se estabiliza)
+sill_emp <- mean(tail(bin2$v, 5))  # Sill total
+cat("Sill total estimado: ", round(sill_emp, 4), "\n")
+
+# Paso 3: Estimar el nugget como el valor en la primera clase de distancia (aprox. 0)
+nugget_emp <- bin2$v[1]
+cat("Nugget estimado: ", round(nugget_emp, 4), "\n")
+
+# Paso 4: Calcular el sill parcial (estructura espacial real)
+sill_parcial_emp <- sill_emp - nugget_emp
+cat("Sill parcial estimado: ", round(sill_parcial_emp, 4), "\n")
+
+# Paso 5: Estimar el rango como la distancia en la que la semivarianza alcanza 95% del sill
+target <- 0.95 * sill_emp
+idx <- which.min(abs(bin2$v - target))  # Índice más cercano al 95% del sill
+rango_emp <- bin2$u[idx]
+cat("Rango estimado (distancia para 95% del sill): ", round(rango_emp, 2), " unidades\n")
+
+```
+
+```{r, echo=FALSE}
+require(gstat)
+# Definir modelo variográfico
+m <- vgm(9.0868, "Exp",  83591.61)
+# Kriging Ordinario
+x <- krige(data~1, df, gdf_spdf, model = m)
+# Visualizar predicciones y varianza
+par(mfrow = c(1, 2))  
+
+spplot(x["var1.pred"], 
+       main = "Predicciones por Kriging Ordinario")
+```
+
+El mapa de predicciones generado por Kriging Ordinario muestra que la mayor parte del territorio presenta valores de salinidad muy bajos, mientras que las concentraciones más altas se localizan en focos muy puntuales del norte y centro. Esta distribución refuerza la idea de no estacionariedad en la media, ya que las zonas con valores elevados no se explican por una variación aleatoria alrededor de una media constante. Además, el modelo parece suavizar excesivamente fuera de las zonas densamente muestreadas, lo que sugiere que el supuesto de media constante puede no ser adecuado, y que un kriging universal o con covariables podría ofrecer una representación más realista del fenómeno.
+
+```{r, echo=FALSE}
+spplot(x["var1.var"],  
+       main = "Varianza del Kriging Ordinario")
+```
+
+El mapa de varianza del Kriging Ordinario muestra que la incertidumbre en las predicciones es mínima en las zonas donde hay mayor densidad de datos (centro y norte), y se incrementa notablemente hacia el suroccidente, especialmente en áreas periféricas con poca o nula información. Esto es esperable, ya que el kriging asigna mayor varianza a las predicciones lejanas a los puntos muestreados. Esta distribución indica la necesidad de fortalecer el muestreo en zonas con alta incertidumbre para mejorar la precisión del modelo.
+
+
+Si bien las predicciones reproducen adecuadamente los valores elevados observados en el norte del departamento, el modelo tiende a suavizar excesivamente otras zonas, especialmente en presencia de gradientes espaciales, debido a que en este ejercicio la media no es constante. Esto genera sesgos en las estimaciones y una pérdida de estructura real en los datos. Por su parte, el mapa de varianza refleja mayor incertidumbre en áreas poco muestreadas, como el suroeste, mientras que en zonas densamente observadas la incertidumbre es prácticamente nula. Dado que el supuesto de media constante no se cumple en este caso, el uso de kriging ordinario resulta inadecuado, por lo que se recomienda avanzar hacia un modelo de kriging universal que permita capturar explícitamente la tendencia espacial.
+
+
+## Universal
+
+A diferencia del kriging ordinario, el kriging universal permite incorporar una tendencia espacial no constante, lo que lo convierte en una herramienta más flexible y adecuada para fenómenos que exhiben variaciones sistemáticas a lo largo del espacio. Esta flexibilidad se logra mediante la inclusión de un modelo determinista en el componente de tendencia, representado aquí por funciones de las coordenadas espaciales (en este caso, $X$ y $Y$), lo que permite capturar gradientes geográficos o estructuras más complejas en los datos. En este caso, utilizando los parámetros estimados a partir del semivariograma residual, se ajustó un modelo exponencial que sirvió de base para realizar la interpolación mediante kriging universal:
+
+```{r, echo=FALSE}
+# Variograma Residual
+m <- vgm(11.27, "Exp",  139121.15)
+
+# Kriging Universal
+x <- krige(data~X+Y, df, gdf_spdf, model = m, block = c(100,100))
+# Visualizar predicciones
+spplot(x["var1.pred"], main = "Predicciones por Kriging Universal")
+```
+
+El mapa de predicciones por Kriging Universal mantiene la misma estructura espacial general que el kriging ordinario, con concentraciones altas de salinidad localizadas en el norte y centro, pero ofrece una superficie más suavizada y coherente en áreas con baja densidad de datos. Esto refleja que el modelo logra capturar la tendencia espacial subyacente, lo cual mejora la continuidad de las predicciones y reduce fluctuaciones abruptas asociadas a la falta de información. En conjunto con la menor varianza observada, esto sugiere que el kriging universal proporciona una representación más robusta y confiable del patrón espacial de salinidad.
+
+```{r, echo=FALSE}
+spplot(x["var1.var"],  main = "Varianza del Kriging Universal")
+```
+
+Los resultados obtenidos mediante kriging universal evidencian una mejora significativa respecto al kriging ordinario. El mapa de predicciones muestra una representación espacial más precisa de la salinidad en La Guajira, al capturar de forma explícita los gradientes y patrones de tendencia presentes en los datos. Esto permite superar la limitación impuesta por la hipótesis de media constante del kriging ordinario, que en este caso no se cumplía. Asimismo, el mapa de varianza revela una reducción notable en la incertidumbre de las estimaciones, especialmente en zonas con buena cobertura de muestreo, lo que refleja una mayor precisión y estabilidad en las predicciones. Aunque persisten áreas con mayor varianza en sectores con menor densidad de datos, como el suroeste del departamento, en términos generales el kriging universal proporciona estimaciones más confiables y coherentes, al integrar tanto la estructura de dependencia espacial como la tendencia sistemática del fenómeno. En síntesis, el kriging universal ofrece predicciones más estables y confiables, particularmente en áreas con baja densidad de muestreo.
+
+
+# Validación Cruzada
+
+
+```{r, include=FALSE}
+cv.ols <- krige.cv(
+  formula   = data~X+Y,
+  locations = df,         # SpatialPointsDataFrame
+  model     = m,
+  nfold     = 10
+)
+
+cv.ols
+#RMSE
+round(sqrt(mean(cv.ols$residual^2)), 2)
+
+#MAE
+round(mean(abs(cv.ols$residual)), 2)
+
+```
+Finalmente, se presenta la validación cruzada del modelo de kriging universal, implementada con 10 particiones (nfold = 10), con el fin de evaluar su capacidad predictiva y el ajuste general del modelo.
+```{r echo=FALSE, results='asis'}
+
+# Datos
+metricas <- data.frame(
+  Métrica        = c("RMSE (Root Mean Square Error)",
+                     "MAE (Mean Absolute Error)",
+                     "Varianza de los datos observados",
+                     "Desviación estándar"),
+  Valor          = c(2.94, 1.12, 9.49, 3.08),
+  Interpretación = c("Promedio del error cuadrático; mide desviación respecto al valor real",
+                     "Promedio del error absoluto; más robusto ante valores atípicos",
+                     "Indica dispersión de los valores reales en el conjunto",
+                     "Promedio de la distancia a la media; escala de la variable")
+)
+
+# Tabla HTML bonita
+kable(metricas, format = "html", align = "c", escape = FALSE,
+      caption = "Métricas de Validación Cruzada – Kriging") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"),
+                full_width = FALSE, position = "center", font_size = 13) %>%
+  row_spec(0, bold = TRUE, background = "#f2f2f2") %>%  # Encabezado resaltado
+  column_spec(1, bold = TRUE, width = "6cm") %>%
+  column_spec(2, width = "3cm") %>%
+  column_spec(3, width = "10cm") %>%
+  footnote(general = "Fuente: Elaboración propia con resultados de validación cruzada del modelo de kriging.",
+           general_title = "Nota:")
+
+```
+
+
+Los valores de error obtenidos -RMSE de 2.94 y MAE de 1.12- indican que, en promedio, las predicciones del modelo presentan desviaciones moderadas respecto a los valores reales. El MAE, al ser considerablemente menor que el RMSE, sugiere que los errores más frecuentes son pequeños y que los errores grandes son poco comunes, lo cual es deseable en modelos geoestadísticos. Al comparar estas métricas con la desviación estándar de los datos observados (3.08) y su varianza (9.49), se evidencia que el modelo logra capturar adecuadamente la variabilidad espacial de la salinidad: los errores están contenidos dentro del rango natural de dispersión de la variable, lo que respalda la calidad del ajuste y la confiabilidad de las predicciones obtenidas mediante el método de kriging.
+
+Asimismo, se presenta el gráfico que compara los valores observados con los errores de predicción, con el fin de visualizar el comportamiento del modelo frente a distintas magnitudes de la variable:
+
+```{r echo = F}
+plot(cv.ols$observed, cv.ols$observed - cv.ols$var1.pred,
+     xlab = "Valor observado", ylab = "Error de predicción",
+     main = "Errores de predicción vs Observados")
+abline(h = 0, col = "red")
+
+```
+
+El gráfico de errores de predicción frente a los valores observados, derivado de la validación cruzada del modelo de kriging universal, evidencia un buen desempeño predictivo en rangos bajos y moderados de salinidad: la mayoría de los errores se concentran alrededor de cero cuando los valores observados son inferiores a 15, lo que sugiere una adecuada capacidad del modelo para capturar la estructura espacial predominante. No obstante, se observa una dispersión creciente en los errores a medida que aumentan los valores observados, con algunos puntos extremos que revelan sobreestimaciones o subestimaciones significativas. Esto indica que el modelo presenta limitaciones para predecir correctamente en las colas superiores de la distribución, posiblemente debido a la escasez de datos en esos rangos o a la presencia de valores atípicos que afectan el ajuste local.
+
+#Predicción mediante el método IDW (Inverse Distance Weighting)
+
+Para estimar la salinidad en puntos donde no se realizaron mediciones, se utiliza el método de interpolación IDW (Inverse Distance Weighting). Este método asigna valores a partir de la información de puntos cercanos, dando mayor peso a los más próximos. A diferencia de métodos geoestadísticos, IDW no modela la variabilidad espacial, pero ofrece una forma sencilla y eficaz de obtener una superficie continua a partir de datos puntuales. A continuación, se realiza la predicción sobre una grilla que cubre el área de estudio.
+
+```{r}
+# Extraer coordenadas y datos
+coords <- geo_real$coords
+sal <- geo_real$data
+
+# Crear un SpatialPointsDataFrame
+datos_sp <- SpatialPointsDataFrame(coords = coords,
+                                   data = data.frame(salinidad = sal),
+                                   proj4string = CRS("+proj=longlat +datum=WGS84"))
+
+```
+
+
+# Conclusiones 
+
+Los resultados obtenidos a lo largo de este informe confirman de manera contundente la existencia de autocorrelación espacial significativa en los datos de salinidad registrados en La Guajira. La prueba de Mantel, tanto en su versión simple como en la versión con permutaciones, arrojó p-valores inferiores al umbral de significancia ($\alpha = 0{,}05$), permitiendo rechazar la hipótesis nula de aleatoriedad espacial. Esto justifica plenamente el uso de herramientas geoestadísticas para profundizar el análisis del fenómeno, como el ajuste de semivariogramas y la interpolación mediante kriging.
+
+Desde una perspectiva exploratoria, se evidenció una fuerte asimetría positiva en la distribución de los datos, lo cual motivó la aplicación de estimadores robustos que ofrecieran una representación más precisa de la estructura espacial, evitando el sesgo que podría inducir la presencia de valores extremos.
+
+El análisis del semivariograma permitió estimar un rango de autocorrelación espacial de aproximadamente 125.000 metros, acompañado de un nugget bajo y un sill cercano a 17. Esto indica que existe una dependencia espacial significativa entre puntos cercanos y que, una vez superado el rango estimado, la salinidad tiende a comportarse de forma independiente. La aplicación del semivariograma robusto refuerza estos hallazgos, ya que la mayoría de sus puntos se ubicaron por encima de las envolventes obtenidas por simulaciones aleatorias, lo que aporta evidencia adicional de una estructura espacial clara y no aleatoria.
+
+En conjunto, estos resultados demuestran que el fenómeno de la salinidad en La Guajira presenta una estructura espacial compleja que debe ser considerada en el diseño de estrategias de monitoreo, intervención y manejo ambiental. Las técnicas empleadas son adecuadas y pertinentes para el contexto, y constituyen una base sólida para estudios más avanzados como el kriging ordinario o universal, modelado de tendencias y análisis multivariado con variables edáficas, climáticas o socioambientales.
+
+# Referencias
+
+- Autoridad Nacional de Licencias Ambientales. (2020). Reporte de análisis regional: Actualización del reporte de alertas de análisis regional de la zona hidrográfica Caribe – Guajira. ANLA.
+
+- Banco de la República (2003). Salinas de Manaure: Tradición Wayuú y modernización (Documento de Trabajo sobre Economía Regional y Urbana No. 35). Banco de la República. https://repositorio.banrep.gov.co/bitstream/20.500.12134/3189/1/dtser_35.pdf
+
+- Instituto de Hidrología, Meteorología y Estudios Ambientales (IDEAM). (2021). Boletín Agroclimático Nacional - Región Caribe. 
+
+- FAO. (2015). Status of the World’s Soil Resources (SWSR) – Main Report. Food and Agriculture Organization of the United Nations.
+https://www.fao.org/3/i5199e/i5199e.pdf
+
+- González, J., & Rudas, A. (2019). La gestión del agua en territorios indígenas de La Guajira: retos en un contexto de escasez hídrica. Revista de Estudios Sociales, 68, 16–31. https://doi.org/10.7440/res68.2019.02
+
+- Qadir, M., Quillérou, E., Nangia, V., Murtaza, G., Singh, M., Thomas, R. J., ... & Noble, A. D. (2014). Economics of salt-induced land degradation and restoration. Natural Resources Forum, 38(4), 282–295. https://doi.org/10.1111/1477-8947.12054
+
+- El Espectador. (2024, junio 7). Estudiarán agua subterránea en La Guajira para saber si es aprovechable. Blog El Río – Ambiente.
+https://www.elespectador.com/ambiente/blog-el-rio/estudiaran-agua-subterranea-en-la-guajira-para-saber-si-es-aprovechable/
+
+
+
+
+
+
+
+
