@@ -1,0 +1,598 @@
+---
+title: "Determinantes del Índice de Pobreza Multidimensional en los departamentos Colombiano: Efectos del Gini y de la Orientación Política de Gobierno"
+author:
+  - name: "María Isabel Carvajal Londoño"
+    affiliation: "macarvajall@unal.edu.co - Universidad Nacional de Colombia, sede Medellín"
+  - name: "Juan Manuel Saldarriaga Velásquez"
+    affiliation: "jsaldarriagav@unal.edu.co - Universidad Nacional de Colombia, sede Medellín"
+date: "Julio, 2025"
+output:
+  html_document:
+    theme: flatly
+    highlight: tango
+    toc: true
+    toc_title: "Tabla de contenidos"
+    toc_depth: 3
+    toc_float: true
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F)
+```
+
+
+```{r, include=FALSE}
+library(ggplot2)
+library(leaflet)
+library(sf)
+library(sp)
+library(tidyverse)
+library(tmap)
+library(tmaptools)
+library(spdep)
+library(spatialreg)
+library(gridExtra)
+library(TH.data)
+library(rvest)
+library(dplyr)
+library(stringi)
+library(tidyr)
+library(janitor)
+library(kableExtra)
+library(knitr)
+```
+
+
+```{r, include=FALSE}
+library(readxl)
+IPD <- read_excel("IPD.xlsx")
+```
+
+```{r, include=FALSE}
+colombia <- st_read("colombia.geo.json")
+```
+
+```{r, include=FALSE}
+df <- read_excel("GINI_COL_IGAC_V3_07052024.xlsx",
+                 sheet = 3, skip = 3)
+
+df <- data.frame(
+  Codigo = df[[1]],
+  Departamento = df[[2]],
+  GINI = df[[6]])
+
+df$Departamento <- str_to_title(tolower(df$Departamento))
+
+bogota_row <- data.frame(
+  Codigo = 11, 
+  Departamento = "Bogotá D.C.",
+  GINI = 0.53
+)
+
+df <- rbind(df, bogota_row)
+df <- df[df$Departamento != "San Andrés", ]
+df
+```
+
+```{r, include=FALSE}
+df  <- df  %>% mutate(Departamento = toupper(stringi::stri_trans_general(Departamento, "Latin-ASCII")))
+IPD <- IPD %>% mutate(Departamento = toupper(stringi::stri_trans_general(Departamento, "Latin-ASCII")))
+
+# Unir GINI (df) con IPM (IPD)
+datos <- left_join(df, IPD, by = "Departamento")
+datos
+```
+
+```{r,include=FALSE}
+colombia <- colombia %>%
+  rename(Codigo = DPTO)
+
+colombia_datos <- left_join(colombia, datos, by = "Codigo")
+colombia_datos$Departamento.y <- NULL
+colnames(colombia_datos)[colnames(colombia_datos) == "Departamento.x"] <- "Departamento"
+```
+
+```{r,include=FALSE}
+url  <- "https://es.wikipedia.org/wiki/Elecciones_presidenciales_de_Colombia_de_2022"
+page <- read_html(url)
+
+tables <- page %>% 
+  html_nodes("table.wikitable") %>% 
+  html_table(fill = TRUE)
+
+
+idx  <- which(sapply(tables, function(df) "Departamento" %in% names(df)))[1]
+tab1 <- tables[[idx]]
+
+tab1 <- clean_names(tab1)
+pct_cols <- grep("_2$", names(tab1), value = TRUE)[1:4]
+
+tab1_clean <- tab1 %>%
+  mutate(
+    departamento = departamento %>% 
+      stri_trans_general("Latin-ASCII") %>%  
+      toupper() %>%                          
+      str_trim()                             
+  ) %>%
+  mutate(across(
+    all_of(pct_cols),
+    ~ stri_replace_all_regex(.x, "[%,]", "") %>%  
+      as.numeric()                                
+  ))
+
+orientacion_dept <- tab1_clean %>%
+  pivot_longer(
+    cols      = all_of(pct_cols),
+    names_to  = "candidato_pct",
+    values_to = "porcentaje"
+  ) %>%
+  group_by(departamento) %>%
+  slice_max(porcentaje, with_ties = FALSE) %>%
+  ungroup() %>%
+  mutate(
+    orientacion = case_when(
+      str_detect(candidato_pct, regex("petro",   ignore_case = TRUE)) ~ "Izquierda",
+      str_detect(candidato_pct, regex("fajardo", ignore_case = TRUE)) ~ "Centro",
+      TRUE                                                                ~ "Derecha"
+    )
+  ) %>%
+  dplyr::select(
+    Departamento = departamento,
+    Orientacion  = orientacion
+  )
+
+orientacion_dept
+```
+
+
+```{r, include=FALSE}
+colombia_datos_clean <- colombia_datos %>%
+  mutate(
+    dept_clean = Departamento %>%
+      stri_replace_all_regex("\\s*D\\.C\\.?$", "") %>%  # elimina " D.C." o " D.C"
+      stri_trans_general("Latin-ASCII") %>%              # quita acentos
+      toupper()                                          # pasa a mayúsculas
+  )
+
+
+orientacion_dept_clean <- orientacion_dept %>%
+  mutate(
+    Departamento = toupper(Departamento)
+  )
+
+
+colombia_final <- colombia_datos_clean %>%
+  left_join(orientacion_dept_clean,
+            by = c("dept_clean" = "Departamento")) %>%
+  dplyr::select(-dept_clean)
+
+```
+
+# **Introducción**
+
+Según el Departamento Administrativo Nacional de Estadística (DANE, 2024):
+
+\begin{quote}
+El Índice de Pobreza Multidimensional (IPM) es un indicador que refleja las privaciones que pueden llegar a enfrentar las personas y los hogares en dimensiones como educación, salud, trabajo, vivienda y servicios públicos. A partir de este indicador se calcula la incidencia de la pobreza multidimensional —la proporción de hogares con al menos el 33,3 % de privaciones— y la intensidad —el número promedio de carencias que experimenta cada hogar—.
+\end{quote}
+
+La construcción del IPM se fundamenta en la metodología de recorte dual desarrollada por Alkire y Santos (2010), la cual establece dos umbrales: uno para identificar la privación en cada indicador (por ejemplo, falta de escolarización primaria) y otro para determinar si el total de privaciones acumuladas en un hogar lo ubica por encima del 33,3 % necesario para ser considerado “pobre multidimensional” (Alkire & Santos, 2010). Este procedimiento permite descomponer la medición en su incidencia (H) y su intensidad (A), generando el índice agregado  
+\[
+  \mathrm{MPI} \;=\; H \times A
+\]
+tal como lo formalizan Alkire y Foster (2011).
+
+El IPM resulta asimismo esencial para el seguimiento de la Agenda 2030 de las Naciones Unidas, cuyo Objetivo 1.2 insta a “duplicar al menos el ritmo de reducción de la pobreza en todas sus dimensiones” (ONU, 2015). Gracias a su carácter multidimensional, el IPM facilita la evaluación simultánea de carencias en salud, educación, empleo y nivel de vida, alineándose con las metas definidas por el PNUD y el OPHI (2020).
+
+En el contexto colombiano, DANE (2024) adaptó el método Alkire–Foster seleccionando cinco dimensiones y quince indicadores específicos —tales como acceso a agua potable y cobertura de asistencia escolar— para captar las particularidades territoriales de cada departamento. Esta adaptación ha revelado disparidades notables: mientras regiones rurales como La Guajira exhiben una incidencia de pobreza multidimensional muy superior al umbral nacional, centros urbanos de Antioquia presentan niveles considerablemente más bajos (DANE, 2024).
+
+Finalmente, al reportar de manera simultánea incidencia e intensidad de las privaciones, el IPM aporta una visión integral que orienta con precisión la formulación de políticas públicas. Un departamento con alta incidencia pero baja intensidad requerirá redes de protección social universales, en tanto que regiones con menor incidencia pero concentraciones severas de carencias se beneficiarán de intervenciones sectoriales focalizadas (Ferreira & Lugo, 2013).
+
+# **Planteamiento del problema**
+
+
+Colombia presenta notables disparidades socioeconómicas a lo largo de su territorio, las cuales se manifiestan en variaciones de los niveles de desigualdad medidos a través del coeficiente de Gini y de diversos indicadores de pobreza (DANE, 2024; Banco Mundial, 2024). Estas diferencias departamentales no solo reflejan brechas en ingresos y bienestar, sino que condicionan la formulación y efectividad de las políticas públicas, haciendo imprescindible un análisis que articule la dimensión económica con la orientación política de los administradores locales.
+
+El coeficiente de Gini exhibe valores heterogéneos entre los departamentos, revelando concentraciones de riqueza y privaciones que responden a factores históricos, geográficos y estructurales propios de cada región (Sánchez-Torres, 2017). A su vez, la orientación política de los gobiernos departamentales —entendida como la inclinación ideológica de las administraciones (izquierda, centro o derecha)— influye directamente en la definición de prioridades presupuestarias y en el diseño de programas sociales, determinando la focalización de los recursos destinados a la reducción de la desigualdad (Martínez, 2014).
+
+No obstante, la literatura existente ha prestado escasa atención a la interacción entre la desigualdad medida por el Gini y la orientación política de los gobiernos locales, lo cual impide clarificar si las diferencias ideológicas condicionan la magnitud de la desigualdad y la eficacia de las intervenciones (PNUD, 2021). Esta laguna investigativa limita la capacidad de diseñar estrategias de política pública verdaderamente adaptadas a las particularidades de cada departamento. En consecuencia, este trabajo  propone estudiar de forma sistemática la relación entre el coeficiente de Gini y la orientación política de los gobiernos departamentales en Colombia, con el fin de identificar patrones de gestión pública que favorezcan la equidad y el desarrollo regional en relación al índice de pobreza multidimensional. 
+
+
+# **Objetivo**
+
+Analizar la distribución espacial de la pobreza multidimensional (IPM) en Colombia, identificando clústeres de alta y baja pobreza y su relación con características socioeconómicas y geográficas.
+
+# **Motivación** 
+
+La profunda heterogeneidad de la pobreza multidimensional en Colombia refleja no solo brechas en el acceso a servicios esenciales, sino también desigualdades estructurales que atraviesan lo territorial, lo político y lo histórico (DANE, 2024). Mientras algunos departamentos registran índices de pobreza multidimensional superiores al 40%, otros mantienen tasas por debajo del 5%, lo cual evidencia una marcada concentración espacial de privaciones y plantea retos críticos para la equidad y la eficacia de las intervenciones sociales.  
+
+Estas disparidades territoriales dificultan la asignación óptima de recursos y la definición de estrategias diferenciadas que atiendan tanto las necesidades más urgentes como las causas subyacentes de la pobreza. En regiones con elevadas tasas de privación, la insuficiente focalización de los programas de desarrollo perpetúa ciclos de exclusión y fragiliza la cohesión social. Por el contrario, en áreas con bajos niveles de pobreza multidimensional, los escasos márgenes de mejora pueden pasar inadvertidos si se emplean criterios de “talla única” en las políticas públicas.  
+
+De este modo, estudiar de manera integrada la dimensión espacial de la pobreza multidimensional —articulando su intensidad y incidencia con factores como la desigualdad de ingresos y la orientación política de los gobiernos locales— resulta indispensable para diseñar intervenciones más precisas y justas. Una comprensión detallada de los patrones territoriales permitirá optimizar la focalización de las acciones gubernamentales, contribuyendo al cumplimiento de las metas de desarrollo sostenible y al cierre efectivo de las brechas socioeconómicas en todo el país.  
+
+# **¿Qué se pretende estudiar?**
+
+¿Cómo se distribuye espacialmente la pobreza multidimensional en Colombia, y qué clústeres o patrones territoriales se pueden identificar para orientar intervenciones focalizadas en la reducción de la pobreza?
+
+
+# **Análisis de Autocorrelación Espacial**
+
+La base de datos se compone de 32 observaciones, correspondientes a los 31 departamentos de Colombia (excluyendo el Archipiélago de San Andrés, Providencia y Santa Catalina), así como Bogotá D.C. Cada registro incluye diez variables, entre las cuales destacan el Índice de Pobreza Multidimensional (IPM) total, el coeficiente de Gini y la orientación política de la administración departamental. Antes de iniciar el análisis, se llevó a cabo una exploración preliminar de los datos, que incluyó la transformación del sistema de coordenadas geográficas al sistema UTM (zona 18N).
+
+A continuación, se muestra el encabezado del conjunto de datos:
+
+```{r, echo=FALSE}
+data <- colombia_final 
+data <- data[-(33), ]
+
+data <- st_transform(data, crs = 32618)
+head(data)
+```
+
+Para garantizar la integridad de la geometría de cada polígono departamental, se aplicó la función \verb|st_make_valid(data)| sobre el conjunto espacial. Con la geometría lista, se generó a continuación un mapa coroplético que ilustra la incidencia del IPM en cada departamento.
+
+```{r}
+library(readxl)
+IPD <- read_excel("IPD.xlsx")
+```
+
+```{r include=F}
+colombia <- st_read("colombia.geo.json")
+```
+
+```{r}
+data <- cbind(colombia, IPD)
+data <- data[-(33), ]
+```
+
+```{r, include=FALSE}
+# Validar geometría si no lo has hecho
+data <- st_make_valid(data)
+
+# Definir los cortes manualmente
+bins <- c(0, 10, 15, 20, 30, 45, Inf)
+```
+
+```{r, include=FALSE}
+mypalette <- colorBin(
+  palette = c(
+  "#FFFFFF",  # blanco
+  "#FFFFB2",  # amarillo muy claro
+  "#FECC5C",  # amarillo-naranja
+  "#FD8D3C",  # naranja
+  "#F03B20",  # rojo
+  "#BD0026",  # rojo oscuro
+  "#7F0000"   # marrón rojizo oscuro
+),
+  domain = data$Total,
+  bins = bins,
+  na.color = "black"
+)
+```
+
+```{r, echo=FALSE}
+leaflet(data = data) %>%
+  addTiles() %>%
+  addPolygons(
+    fillColor = mypalette(data$Total),
+    fillOpacity = 0.9,
+    color = "black",
+    weight = 1,
+    popup = paste0(
+      "<strong>Departamento: </strong>", data$Departamento,
+      "<br><strong>Porcentaje: </strong>", data$Total, "%"
+    ),
+    highlight = highlightOptions(
+      weight = 2,
+      color = "lightgreen",
+      bringToFront = TRUE
+    )
+  ) %>%
+  addLegend(
+    title = "IPM",
+    pal = mypalette,
+    values = data$Freq,
+    opacity = 0.9
+  ) %>%
+  addProviderTiles(providers$Stadia.StamenToner)
+```
+
+
+```{r, echo=FALSE}
+data <- colombia_final 
+data <- data[-(33), ]
+
+data <- st_transform(data, crs = 32618)
+```
+
+En el mapa resultante se aprecia un claro gradiente espacial: los valores más altos de pobreza multidimensional (por encima del 45 % y entre 30–45 %) se concentran en los departamentos periféricos, especialmente en la región Caribe (por ejemplo, La Guajira) y en zonas del Pacífico y de la Amazonía (como Chocó y Putumayo). En contraste, el eje central andino —que agrupa a Bogotá D.C., Cundinamarca, Antioquia y Valle del Cauca— presenta las tasas más bajas, por debajo del 15 %, lo cual indica un acceso relativamente más amplio a servicios y oportunidades en estos territorios.
+
+Por otro lado, se generan los centroides de cada polígono departamental:
+
+```{r, echo=FALSE}
+centros <- st_centroid(data$geometry)
+
+# Graficar el mapa con los polígonos y sus centroides
+ggplot() +
+  geom_sf(data = data$geometry, color = "black", alpha = 0.5) +
+  geom_sf(data = centros, color = "red", size = 2) +  # rojo
+  theme_minimal()
+```
+
+
+```{r include=FALSE}
+matriz <-poly2nb(data$geometry, queen = TRUE) # FALSE tipo torre
+matriz
+```
+
+## Tabla de vecindad 
+
+Antes de aplicar los métodos de autocorrelación espacial, es necesario definir la estructura de relaciones entre las unidades territoriales. A continuación, se presenta un resumen de las características principales de la matriz de vecindad generada para los departamentos de Colombia:
+```{r}
+tabla_vecindad <- data.frame(
+  Métrica = c("Número de regiones", 
+              "Número de enlaces no nulos", 
+              "Porcentaje de pesos no nulos", 
+              "Promedio de enlaces por región"),
+  Valor = c(32, 146, "14.26 %", "4.56")
+)
+
+# Generar la tabla con formato
+tabla_vecindad %>%
+  kable(caption = "Resumen de la estructura de vecindad espacial",
+        align = "c", 
+        col.names = c("Indicador", "Valor")) %>%
+  kable_styling(full_width = FALSE, 
+                position = "center", 
+                font_size = 12) %>%
+  column_spec(1:2, width = "5cm")
+
+```
+
+
+La tabla presenta un resumen de la estructura de vecindad espacial definida para los 32 departamentos de Colombia. Se identificaron 146 enlaces no nulos, lo que refleja las relaciones de contigüidad entre regiones. El 14,26 % de los pesos espaciales son distintos de cero, lo cual indica una conectividad espacial moderada. En promedio, cada departamento comparte frontera con aproximadamente 4,56 departamentos vecinos, lo que permite capturar adecuadamente la dependencia espacial en el territorio nacional. Esta estructura es fundamental para la aplicación de métodos de análisis espacial, como el test de Moran y los estadísticos LISA, los cuales se apoyan en la existencia de interacciones espaciales significativas entre unidades geográficas.
+
+## Grafo de vecindad espacial
+
+Una vez construida la matriz de vecindad espacial, es posible representarla gráficamente mediante un grafo, en el cual se visualizan las conexiones entre las unidades territoriales. En el siguiente gráfico se muestran los vínculos de contigüidad definidos bajo el criterio de vecindad tipo "reina", que considera como vecinos aquellos departamentos que comparten al menos un punto en común (borde o vértice).
+
+```{r}
+# Coordenadas de los centroides (ya calculados con st_centroid)
+coords <- sf::st_coordinates(centros)
+
+# Crear líneas de vecindad como objeto sf
+grafo_vecindad <- spdep::nb2lines(
+  matriz,
+  coords = coords,
+  proj4string = "WGS84",
+  as_sf = TRUE
+)
+```
+
+
+```{r}
+ggplot() +
+  geom_sf(data = data$geometry, fill = "white", color = "black", alpha = 0.3) +
+  geom_sf(data = grafo_vecindad, color = "red") +  # líneas del grafo en verde oscuro
+  theme_minimal()
+```
+
+El grafo evidencia la estructura espacial del país al representar con líneas rojas los enlaces entre departamentos vecinos. Se observa una red conectada y relativamente densa en la región andina y el centro del país, lo cual refleja una mayor proximidad y compartición de fronteras entre esas unidades. En contraste, en zonas periféricas como el Amazonas o la Guajira, los departamentos presentan menos conexiones, debido a su localización geográfica y a la menor cantidad de fronteras compartidas. Esta visualización confirma que existe una base suficiente para realizar análisis de autocorrelación espacial, como los basados en el estadístico de Moran.
+
+## Test de Moran I
+
+Para evaluar la existencia de autocorrelación espacial en la distribución del Índice de Pobreza Multidimensional (IPM) entre los departamentos de Colombia, se aplicó el test global de Moran I. Este estadístico permite identificar si los valores observados presentan un patrón espacial no aleatorio, es decir, si los departamentos con niveles similares de pobreza tienden a agruparse geográficamente.
+
+```{r include=FALSE}
+pesos <- nb2listw(matriz, style = "W", zero.policy = T)
+pesos
+moran.test(data$Total, pesos)
+```
+
+```{r}
+tabla_moran <- data.frame(
+  Estadístico = c("Moran I", 
+                  "Valor esperado (bajo H₀)", 
+                  "Varianza", 
+                  "Desviación estándar", 
+                  "Valor z", 
+                  "Valor p"),
+  Valor = c(0.2730, 
+            -0.0323, 
+            0.0106, 
+            sqrt(0.0106), 
+            2.9588, 
+            0.0015)
+)
+
+# Generar la tabla con formato
+tabla_moran %>%
+  kable(caption = "Resultados del test de autocorrelación espacial de Moran I",
+        align = "c", 
+        col.names = c("Parámetro", "Valor")) %>%
+  kable_styling(full_width = FALSE, 
+                position = "center", 
+                font_size = 12) %>%
+  column_spec(1:2, width = "5cm")
+
+```
+
+El valor observado del estadístico de Moran I fue 0.2730, notablemente superior al valor esperado bajo la hipótesis nula (−0.0323), y con un valor z de 2.9588. El valor p asociado (0.0015) permite rechazar la hipótesis nula de ausencia de autocorrelación espacial al nivel de significancia del 5 %. Estos resultados indican que existe una autocorrelación espacial positiva y estadísticamente significativa, lo que implica que los departamentos con niveles similares de IPM tienden a agruparse en el espacio geográfico. Esto respalda la presencia de clústeres regionales de pobreza multidimensional, lo cual es consistente con las desigualdades territoriales previamente observadas.
+
+## Gráfico de dispersión de Moran 
+
+El gráfico de dispersión de Moran permite visualizar la relación entre el valor del Índice de Pobreza Multidimensional (IPM) en cada departamento y el promedio de IPM en sus departamentos vecinos. Esta herramienta gráfica complementa el análisis estadístico del test de Moran, ayudando a identificar patrones espaciales de agrupamiento.
+
+
+```{r}
+mp <- moran.plot(
+  data$Total,     # Variable de interés
+  listw = pesos,                     # Matriz de pesos espaciales
+  labels = as.character(data$Departamento),  # Nombres de los barrios
+  pch = 19,                          # Puntos sólidos
+  col = "#F03B20",                   # Verde medio para la paleta
+  xlab = "IPD porcentaje",  # Etiqueta eje X
+  ylab = "Promedio espacial (lag)",  # Etiqueta eje Y
+  main = "Diagrama de dispersión de Moran", 
+  ylim = c(5, 45)
+  )
+```
+
+En el gráfico se observa una pendiente positiva en la recta de regresión, lo que confirma la existencia de autocorrelación espacial positiva. Es decir, los departamentos con un alto (o bajo) nivel de IPM tienden a estar rodeados por otros con valores similares. Este patrón es visible en la concentración de puntos en los cuadrantes alto-alto (superior derecho) y bajo-bajo (inferior izquierdo), lo cual es coherente con el valor positivo del estadístico de Moran obtenido previamente.
+
+Además, se destacan casos atípicos como:
+
+1. Vichada, con un IPM muy alto pero rodeado de departamentos con promedios más bajos (posible clúster alto-bajo)
+2. Guainía y Guaviare, también con valores elevados y contextos particulares de vecindad.
+  
+Estas observaciones indican que, si bien existen agrupamientos espaciales claros, algunos departamentos presentan desajustes locales que serán mejor analizados con los mapas LISA, los cuales permiten explorar la autocorrelación espacial a nivel local.
+
+## Mapa LISA (Indicadores Locales de Asociación Espacial)
+
+Mientras que el test global de Moran I evalúa la presencia de autocorrelación espacial en todo el territorio, el análisis LISA permite identificar clústeres locales de asociación espacial. En el siguiente mapa, se clasifican los departamentos según la relación entre su nivel de pobreza multidimensional y el de sus vecinos, permitiendo detectar agrupamientos y posibles valores atípicos.
+
+```{r}
+lisa <- localmoran(data$Total, pesos)
+# Define los colores para las categorías
+colores <- c("Low-Low" = "#FFFFB2", "High-Low" = "#FD8D3C", "Low-High" = "#F03B20", "High-High" = "red")
+
+# Crea un mapa de clusters espaciales con etiquetas
+plot(data[,7], col = ifelse(lisa[,1] > 0 & lisa[,5] < 0.05, colores[attr(lisa,"quadr")$mean], "white"), main=" ")
+legend("bottomright", legend = names(colores), fill = colores, cex = 0.8)
+```
+
+El mapa LISA revela la presencia de clústeres Alto-Alto (High-High) en la región amazónica del país, donde departamentos como Guaviare y Guainía presentan altos niveles de IPM y están rodeados por vecinos también con altos niveles de pobreza multidimensional. Esto confirma la existencia de bolsas de pobreza regionalizadas.
+
+Asimismo, se observa un clúster Bajo-Bajo (Low-Low) en el centro del país (probablemente Cundinamarca), lo que indica un entorno con bajos niveles de IPM tanto a nivel local como en sus alrededores, reflejando condiciones favorables en términos de privaciones.
+
+También se identifica un posible caso Alto-Bajo (High-Low), donde un departamento con alto IPM se encuentra rodeado por vecinos con bajos niveles, lo cual podría representar una anomalía local o una zona de transición territorial en términos de desarrollo.
+
+En conjunto, este análisis permite localizar con precisión los focos territoriales más críticos y diferenciarlos de áreas que presentan una situación más estable, aportando así insumos fundamentales para la formulación de políticas públicas focalizadas territorialmente.
+
+## Mapa de análisis local del IPM (LISA)
+
+A continuación se presentan cuatro mapas que permiten una evaluación integral de la dependencia espacial local del Índice de Pobreza Multidimensional (IPM) en Colombia. Estos mapas corresponden a:
+
+1. El valor del IPM (%) por departamento.  
+2. El valor del estadístico local de Moran (Local Moran’s I).  
+3. El z-score asociado a dicho estadístico.  
+4. El valor p, que indica la significancia estadística de la autocorrelación local.
+
+
+Estos elementos permiten identificar con precisión no solo los niveles de pobreza, sino también su comportamiento espacial y su significancia estadística a nivel departamental.
+
+```{r message=FALSE, warning=FALSE}
+# --------------------------------------------------------
+# Configurar modo interactivo
+# --------------------------------------------------------
+tmap_mode("view")
+
+# --------------------------------------------------------
+# Calcular el I de Moran local y añadir al sf
+# --------------------------------------------------------
+lisa <- localmoran(data$Total, pesos) # Asegúrate de que 'pesos' es un objeto 'listw'
+data$lmI <- lisa[,"Ii"]               # Local Moran's I
+data$lmZ <- lisa[,"Z.Ii"]             # Z-scores
+data$lmp <- lisa[,"Pr(z != E(Ii))"]   # p-values
+
+# --------------------------------------------------------
+# Mapa de la variable de interés
+# --------------------------------------------------------
+p1 <- tm_shape(data) +
+  tm_polygons(col = "Total",
+              title = "IPM (%)",
+              style = "quantile",
+              palette = "YlOrRd") +
+  tm_layout(legend.outside = TRUE)
+
+# --------------------------------------------------------
+# Mapa de Local Moran's I
+# --------------------------------------------------------
+p2 <- tm_shape(data) +
+  tm_polygons(col = "lmI",
+              title = "Local Moran's I",
+              style = "quantile",
+              palette = "PuBuGn") +
+  tm_layout(legend.outside = TRUE)
+
+# --------------------------------------------------------
+# Mapa de Z-scores
+# --------------------------------------------------------
+p3 <- tm_shape(data) +
+  tm_polygons(col = "lmZ",
+              title = "Z-score",
+              breaks = c(-Inf, 1.65, Inf),
+              palette = "-RdBu") +
+  tm_layout(legend.outside = TRUE)
+
+# --------------------------------------------------------
+# Mapa de p-values
+# --------------------------------------------------------
+p4 <- tm_shape(data) +
+  tm_polygons(col = "lmp",
+              title = "p-value",
+              breaks = c(-Inf, 0.05, Inf),
+              palette = c("red", "grey")) +
+  tm_layout(legend.outside = TRUE)
+
+# --------------------------------------------------------
+# Mostrar los cuatro mapas organizados
+# --------------------------------------------------------
+tmap_arrange(p1, p2, p3, p4)
+```
+
+
+1. El Primer mapa (IPM \%) evidencia que los niveles más altos de pobreza multidimensional se concentran en departamentos del suroriente y la región Pacífica, mientras que los menores se registran en el centro del país.
+
+2. El segundo mapa (Local Moran’s I) muestra valores altos del estadístico local en departamentos del oriente, lo que sugiere una fuerte autocorrelación positiva en esas zonas.
+
+3. El tercer mapa (z-score) identifica los departamentos donde el valor del estadístico es suficientemente alto como para ser considerado inusualmente diferente del promedio esperado. Departamentos como Guainía, Guaviare y Vaupés muestran valores altos, lo que indica agrupamientos no aleatorios.
+
+4. Finalmente, el cuarto mapa (p-value) resalta en rojo los departamentos con significancia estadística al 5\%, es decir, donde la autocorrelación espacial es estadísticamente significativa. Los clústeres identificados en esta visualización coinciden con los señalados previamente en el mapa LISA y refuerzan la existencia de focos espaciales de pobreza multidimensional.
+
+En conjunto, estos mapas ofrecen una visión detallada del comportamiento espacial del IPM, permitiendo no solo identificar regiones críticas, sino también cuantificar la fuerza y significancia de su agrupamiento territorial. Estos hallazgos son clave para el diseño de intervenciones regionales focalizadas y estrategias de planificación social.
+
+
+```{r include=FALSE}
+library(tmap)
+
+# Configurar el modo de dibujo estático para exportar la imagen
+tmap_mode("plot")
+
+# Crear y organizar los paneles como se configuraron previamente
+tmap_4panel <- tmap_arrange(p1, p2, p3, p4)
+
+# Guardar en PNG con buena resolución
+tmap_save(tmap_4panel,
+          filename = "IPM_LISA_4panel.png",
+          width = 2800, height = 1800, dpi = 300)
+
+```
+
+# Referencias
+
+- Alkire, S., & Foster, J. (2011). Counting and multidimensional poverty measurement. Journal of Public Economics, 95(7–8), 476–487. https://doi.org/10.1016/j.jpubeco.2010.11.006 
+
+
+- Alkire, S., & Santos, M. E. (2010). Acute multidimensional poverty: A new index for developing countries (Human Development Research Paper 2010/11). United Nations Development Programme, Human Development Report Office. http://hdr.undp.org/en/reports/global/hdr2010/papers/HDRP_2010_11.pdf 
+
+
+- Departamento Administrativo Nacional de Estadística (DANE). (2024). Boletín técnico: Pobreza Multidimensional (IPM) Año 2024. https://www.dane.gov.co/files/operaciones/PM/bol-PMultidimensional-2024.pdf 
+
+
+- Ferreira, F. H. G., & Lugo, M. A. (2013). Multidimensional poverty analysis: Looking for a middle ground. World Bank Research Observer, 28(2), 220–235. https://doi.org/10.1093/wbro/lks013 
+
+- United Nations. (2015). Transforming our world: The 2030 Agenda for Sustainable Development (A/RES/70/1). New York, NY: United Nations. 
+docs.iza.org
+
+- United Nations Development Programme & Oxford Poverty and Human Development Initiative. (2020). Global Multidimensional Poverty Index 2020: Charting pathways out of multidimensional poverty: Achieving the SDGs. UNDP & OPHI.
+
+- Banco Mundial. (2024, 3 de diciembre). Informe sobre pobreza del Banco Mundial destaca desigualdades persistentes en Colombia. Recuperado de https://www.bancomundial.org/es/news/press-release/2024/12/03/informe-sobre-pobreza-del-banco-mundial-destaca-desigualdades-persistentes-en-colombia
+
+
+- Martínez, H. M. (2014). ¿Influye la ideología política en el gasto social? Diálogo UPR. Recuperado de https://dialogo.upr.edu/la-ideologia-politica-influye-en-el-gasto-social/
+
+- PNUD. (2021). Informe Regional de Desarrollo Humano 2021: La paradoja de la desigualdad en Colombia. Programa de las Naciones Unidas para el Desarrollo.
+
+- Sánchez-Torres, R. M. (2017). Desigualdad del ingreso en Colombia: Un estudio por departamentos. Cuadernos de Economía, 36(SPE72), 139–178.
